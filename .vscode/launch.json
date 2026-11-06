@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // Runs the app from current source (Vite + cargo), with hot reload.
+      // Same as typing `corepack pnpm tauri dev` in a terminal.
+      "name": "Run app (dev)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "corepack pnpm tauri dev",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      // Builds a standalone release .exe (no installer) and opens it.
+      // First build is slow; the exe works without Vite running.
+      "name": "Build & run release exe",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "corepack pnpm tauri build --no-bundle; & '.\src-tauri\target\release\coi-barcode-blast.exe'",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

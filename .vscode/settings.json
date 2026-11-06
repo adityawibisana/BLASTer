@@ -1,0 +1,4 @@
+{
+  // Rust/cargo and node_modules are installed on Windows, not WSL.
+  "terminal.integrated.defaultProfile.windows": "PowerShell"
+}
