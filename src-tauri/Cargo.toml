@@ -1,0 +1,27 @@
+[package]
+name = "coi-barcode-blast"
+version = "0.1.0"
+description = "COI Barcode BLAST"
+edition = "2024"
+rust-version = "1.88"
+
+[lib]
+name = "coi_blast_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.3", features = [] }
+
+[dependencies]
+anyhow = "1.0.104"
+chrono = { version = "0.4.45", features = ["serde"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["form", "gzip", "http2", "json", "native-tls", "query", "system-proxy"] }
+rust_xlsxwriter = "0.102.0"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+tauri = { version = "2.11.6", features = [] }
+tauri-plugin-dialog = "2.7.3"
+tauri-plugin-opener = "2.5.5"
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "time", "sync"] }
+zip = { version = "9.4.1", default-features = false, features = ["deflate"] }

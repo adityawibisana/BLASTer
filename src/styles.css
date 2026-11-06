@@ -1,0 +1,169 @@
+@import "tailwindcss";
+
+/* Colour tokens. Light by default, dark when Windows is in dark mode. */
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --panel-2: #f1f4f7;
+  --border: #dde3ea;
+  --text: #17212b;
+  --muted: #5d6b7a;
+  --accent: #0d8a80;
+  --accent-strong: #0a6f67;
+  --accent-soft: #e0f3f1;
+  --warn: #b45309;
+  --warn-soft: #fff4dc;
+  --bad: #b42318;
+  --bad-soft: #fde8e6;
+  --ok: #18794e;
+  --ok-soft: #e3f5ec;
+  --info-soft: #e8f0fb;
+  --shade: rgba(23, 33, 43, 0.08);
+  --primer: rgba(217, 119, 6, 0.18);
+  --base-a: #1f9d55;
+  --base-c: #2563eb;
+  --base-g: #1f2937;
+  --base-t: #dc2626;
+  --q-high: #0d8a80;
+  --q-med: #d97706;
+  --q-low: #dc2626;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #11161c;
+    --panel: #171e26;
+    --panel-2: #1d2630;
+    --border: #2b3642;
+    --text: #e6edf3;
+    --muted: #93a1b0;
+    --accent: #2bb5a8;
+    --accent-strong: #4fd1c5;
+    --accent-soft: #123532;
+    --warn: #f0b35a;
+    --warn-soft: #3a2c12;
+    --bad: #ff8a80;
+    --bad-soft: #3d1b19;
+    --ok: #5fd39a;
+    --ok-soft: #123224;
+    --info-soft: #172a40;
+    --shade: rgba(0, 0, 0, 0.35);
+    --primer: rgba(240, 179, 90, 0.22);
+    --base-a: #4ade80;
+    --base-c: #60a5fa;
+    --base-g: #e5e7eb;
+    --base-t: #f87171;
+    --q-high: #2bb5a8;
+    --q-med: #f0b35a;
+    --q-low: #ff8a80;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-line: var(--border);
+  --color-ink: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-info-soft: var(--info-soft);
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", Consolas, "Courier New", monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Shared control styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) {
+  background: var(--panel-2);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-strong);
+}
+.btn-sm {
+  height: 26px;
+  padding: 0 8px;
+  font-size: 12.5px;
+}
+.input {
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  min-width: 0;
+}
+.input:focus,
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.label {
+  font-size: 12px;
+  color: var(--muted);
+}
