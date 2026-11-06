@@ -13,7 +13,7 @@ A **Compile results** button then decides automatically which species is closest
 
 A batch can hold up to **1000 samples**.
 
-Phase 2 adds forward/reverse pair assembly, a PDF report, and an optional BOLD search (see [Phases](#phases)).
+Phase 2 adds forward/reverse pair assembly and a PDF report. The planned BOLD search was dropped because BOLD has no public API for identifying a sequence (see [BOLD Systems](#8-bold-systems-dropped)).
 
 It automates what is done by hand today: open the traces in Geneious, trim them, copy each sequence into the NCBI BLAST form, and read the results page one sample at a time.
 
@@ -30,7 +30,7 @@ A desktop app built with Tauri: a Rust backend and a React frontend, using the s
 | Platform | **Windows only** (Windows 10/11, x64). Uses the Microsoft Edge WebView2 runtime, which is built into Windows 11 and installed by the installer on Windows 10 |
 | Shell    | Tauri 2, packaged as an NSIS `.exe` installer (and/or `.msi`)          |
 | Backend  | Rust: `tokio` (async), `reqwest` (HTTP), `serde`/`serde_json`, `zip`, `anyhow`/`thiserror` |
-| Export   | Rust: `rust_xlsxwriter` (Excel `.xlsx`), plus a Rust PDF generator (library to be chosen at implementation, e.g. `typst` or `printpdf`) |
+| Export   | Rust: `rust_xlsxwriter` (Excel `.xlsx`); Typst 0.14, embedded with its bundled fonts, for the PDF report |
 | Frontend | React 19 + TypeScript, Vite, Tailwind CSS 4, Radix UI components, `lucide-react` icons |
 | UI parts | `react-resizable-panels` (split views), `sonner` (notifications), `i18next` (English / Indonesian), `recharts` (species chart), `@tanstack/react-virtual` (tables with 1000+ rows stay smooth) |
 | Tauri plugins | `dialog` (open zip, save export), `fs`, `opener` (GenBank links in browser) |
@@ -61,7 +61,7 @@ VN60-1.ab1    14-2022.ab1   30-2022.ab1   49-2022.ab1   274-2022.ab1
 ```
  .zip ─► unpack ─► read .ab1 ─► find primers ─► HQ trim ─► manual review ─► pair F/R ─► assemble ─► .fasta ─► BLAST ─► results ─► Excel / PDF
                                 (outer limit)   (inner)    (drag limits)       │                              │
-                                                                               └─ single reads skip assembly  └─ NCBI (+ BOLD, optional)
+                                                                               └─ single reads skip assembly  └─ NCBI
 ```
 
 ### 1. Unpack and read traces
@@ -177,7 +177,7 @@ The automatic result is a starting point. The user can open any read and correct
 
 ### 5. Read direction, pairing and assembly
 
-Direction detection is in Phase 1. Pairing and assembly are in Phase 2 (see [Phases](#phases)).
+Direction detection was built in Phase 1, pairing and assembly in Phase 2.
 
 Filenames cannot be relied on to say which read is forward and which is reverse. In the example data nothing marks direction: each sample appears once, and the `-1`/`-2`/`-3` suffixes are isolate numbers. So the app works out the direction from the sequence itself.
 
@@ -189,18 +189,27 @@ Filenames cannot be relied on to say which read is forward and which is reverse.
 - **Put every output in the forward direction.** Reads detected as reverse are reverse-complemented. Every FASTA sequence and export then reads 5'→3' along the COI gene, which is how GenBank and BOLD expect it.
 - **Treat files as single reads by default.** Every file is one sample unless it is paired.
 - **Suggest pairs only with evidence.** Two files are suggested as an F/R pair when:
-  - their names share the same sample stem,
-  - their detected directions are opposite,
-  - their sequences overlap.
+  - **their names share a stem with a direction marker:** a separator (`-`, `_`, `.` or space) followed by `F`, `FWD`, `FORWARD`, `LCO`, `LCO1490` or `LepF1`, versus `R`, `REV`, `REVERSE`, `HCO`, `HCO2198` or `LepR1`. Case does not matter. Examples: `S01_F` / `S01_R`, `VN12-LCO` / `VN12-HCO`. A custom pattern in Settings (e.g. `fw,rv`) replaces this list;
+  - **their detected directions are opposite;**
+  - **their sequences overlap:** at least 50 aligned bases at 90% identity or more.
 
-  The user confirms or rejects each suggestion. Files can also be paired, unpaired, or swapped by hand. A filename pattern (e.g. `_F` / `_R`) can be set in Settings for future batches that do label direction, but it is optional.
+  Names without a marker, like the isolate numbers `VN236-1` and `VN236-2`, are never paired automatically.
+
+  The user confirms or rejects each suggestion on the Import screen. A rejected suggestion is not shown again. Files can also be paired by hand, unpaired, or swapped (F becomes R and R becomes F).
 - **Assembly:** for each pair:
-  1. Reverse-complement the reverse read.
-  2. Align it to the forward read.
-  3. Build a consensus over the overlap. Where the two reads disagree, take the base with the higher quality.
-  4. Flag a conflict when both bases are high quality.
-- Report the overlap length, the number of disagreements, and the conflict positions.
-- If a pair does not overlap, it is flagged, and the user chooses to BLAST the better read alone.
+  1. Take each read's trimmed region, primers already removed, with the reverse read reverse-complemented.
+  2. Align the two with an overlap alignment, where the overhanging ends are free.
+  3. Build the consensus.
+     - Bases outside the overlap come from whichever read covers them.
+     - Inside the overlap, where the reads disagree, the base with the higher quality wins. Exact quality ties get the IUPAC code for both bases.
+     - A base facing a gap is kept only if its quality is at least 20.
+  4. Flag a conflict when two disagreeing bases are both high quality.
+- **Result:**
+  - The consensus covers the region between the two primers, close to the 658 bp barcode. It is checked against the consensus length range (600–670 bp).
+  - The forward read's ID becomes the sample ID. The reverse read is never searched on its own.
+  - The overlap length, identity, number of disagreements and conflict positions are reported.
+  - Editing either read's trim limits updates the consensus.
+- **No overlap:** the pair is flagged and left out of BLAST until the user chooses *Forward only* or *Reverse only*.
 
 ### 6. Convert to FASTA
 
@@ -268,13 +277,17 @@ Results expire on NCBI **24 hours** after submission. The results page in the sc
 
 **Results go out of date when a sequence changes.** If a sample's sequence changes after BLAST, its results are marked *outdated* everywhere, including exports. This can happen through a dragged trim limit, a different primer, or a changed direction. *Re-run BLAST* resubmits only the changed samples, not the whole batch.
 
-### 8. BOLD Systems (optional, Phase 2)
+### 8. BOLD Systems (dropped)
 
-**"Also search BOLD Systems"** is a checkbox on the BLAST screen, **unchecked by default**.
+The plan was an optional, unchecked-by-default *"Also search BOLD Systems"* checkbox. It was made conditional on BOLD offering a public identification API, so that it would not be built on scraping BOLD's website.
 
-When checked, each sequence is also sent to the BOLD identification engine, the standard reference library for COI barcodes. Its results appear in a separate **BOLD** tab next to the NCBI results, with species, % similarity, and BIN.
+The check, on 2026-11-06, found no such API:
 
-**Risk:** BOLD has moved from its old v4 system to v5. Whether a public identification API exists now, and its terms and limits, must be confirmed before this feature is built (see [To verify](#to-verify)). If no suitable API exists, this option is dropped rather than built on scraping the website.
+- **The v4 ID engine** (`v4.boldsystems.org/index.php/Ids_xml`) now answers: *"as of August 2025, the BOLD v4 Identification Engine has entered its end-of-life phase and is no longer available. Please use the latest version at https://id.boldsystems.org"*.
+- **The documented v5 APIs** have no endpoint that accepts a sequence. These are the Portal API (`portal.boldsystems.org/openapi.json`, 21 endpoints) and the Data API (`data.boldsystems.org/openapi.json`, 18 endpoints). Both search existing records by taxonomy, place, BIN or ID.
+- **The new ID engine** at `id.boldsystems.org` is a web form that posts to an undocumented internal endpoint.
+
+So the option is not built. To check a sequence against BOLD, paste it into https://id.boldsystems.org. The FASTA export makes that easy. If BOLD publishes an identification API later, this decision can be revisited.
 
 ## Output
 
@@ -397,19 +410,23 @@ All exports cover the whole batch and are saved through a standard Windows *Save
 | QC          | Per read: raw length, % HQ before/after, trim range, primer positions and mismatches, manual edit flag, F/R overlap and conflicts |
 | Hits        | All BLAST hits for all samples (sample, rank, and every hit-list column), with filters on |
 | Sequences   | Final barcode sequence per sample, ready to copy                             |
-| BOLD        | BOLD results (only when the BOLD option was used)                            |
 | Run info    | Date, app version, BLAST settings, RID, database, thresholds used            |
 
-### PDF report (Phase 2)
+### PDF report
 
-- **Cover page:** batch name (defaults to the zip filename), date, the settings used (HQ threshold, primers, BLAST program and database), and RID.
-- **Overview:** the batch overview table, the compiled species table, and the species chart.
-- **Report size:** the user chooses *summary only*, the default for large batches, or *full report*. With 1000 samples a full report runs to over a thousand pages.
-- **Per sample, one section each** (full report only):
-  - QC summary (trim range, % HQ, primers, translation check)
+A4 pages, typeset with Typst inside the app, so nothing extra needs to be installed.
+
+- **Cover page:** batch name (defaults to the zip filename), date, the settings used (HQ threshold, primers, BLAST program and database), and RIDs.
+- **Closest species:** the compiled species chart (bars) and the per-sample table with runner-ups.
+- **Batch overview:** one row per sample with reads, length, % HQ, top hit, identity, cover and status.
+- **Report size:** the user chooses *summary only* or *full report*. The default is full for up to 100 samples and summary above that. A full report has one page per sample, so 1000 samples make about 1000 pages.
+- **Per sample, one page each** (full report only):
+  - QC summary (kept region, % HQ, primers, translation check; for a pair, both files)
   - the top 10 hits
   - the pairwise alignment of the best hit
 - **Appendix:** the final sequences in FASTA.
+
+For the example batch, the full report is 26 pages and the summary 6.
 
 ## Projects: saving and reopening a batch
 
@@ -419,7 +436,8 @@ Each imported batch becomes a **project**, saved as a single `.coiproj` file. It
 - the settings used for this batch: primers, thresholds, BLAST options
 - every per-read decision: primer positions, trim limits, manual edits, direction, pairs
 - the final FASTA
-- the raw NCBI (and BOLD) responses, plus RIDs and timestamps
+- the raw NCBI responses, plus RIDs and timestamps
+- forward/reverse pairs, suggestions, and rejected suggestions
 
 Saving is automatic after every change. *File → Open* and a **recent projects** list on the start screen reopen a project exactly as it was left, including results. No network connection is needed to reopen.
 
@@ -436,7 +454,7 @@ Saving is automatic after every change. *File → Open* and a **recent projects*
    - suggested pairs, to confirm or reject
    - the primer auto-detect summary, to confirm
 2. **Trim / QC:** the chromatogram with primers and trim limits, which can be dragged, plus live % HQ, length, and translation check.
-3. **BLAST:** shows the search settings and the BOLD checkbox, then submits the search. Progress shows groups done / remaining and the estimated finish time.
+3. **BLAST:** shows the search settings, then submits the search. Progress shows groups done / remaining and the estimated finish time.
 4. **Results:**
    - the batch overview
    - for each sample: the summary, hit list, and alignment detail
@@ -483,12 +501,12 @@ Problems are shown as clear messages on the affected sample or step. Nothing fai
 
 ## Phases
 
-All 20 example files are single reads, so Phase 1 is everything needed to process this kind of batch end to end. The rest follows in Phase 2.
+All 20 example files are single reads, so Phase 1 is everything needed to process this kind of batch end to end. Phase 2 adds pairs and the PDF report.
 
 | Phase | Contents |
 |-------|----------|
 | **Phase 1** | Import (up to 1000 samples); parse `.ab1`; primer auto-detect and removal; HQ > 70% trimming; manual trim on the chromatogram; read direction detection; FASTA; NCBI BLAST with grouped, resumable submission; results summary, hit list, alignment detail; batch overview; **Compile results** (closest species per sample and species chart); projects (save/reopen); Excel export; error handling |
-| **Phase 2** | Forward/reverse pair suggestion and assembly; PDF report; BOLD search (only if the API check passes) |
+| **Phase 2** | Forward/reverse pair suggestion and assembly; PDF report. BOLD search: dropped, no public API (see step 8) |
 
 ## Definition of done (Phase 1)
 
@@ -523,7 +541,7 @@ These are assumptions written into this document that must be checked before or 
 | 2 | Geneious's default trim setting is an error-probability limit of 0.05 | Geneious documentation / trim dialog |
 | 3 | The four built-in primer sequences are correct | Check against the original papers (Folmer 1994, Meyer 2003, Astrin & Stüben 2008, Hebert 2004) |
 | 4 | NCBI RIDs expire after 24 hours | Observed in the reference screenshot; confirm in NCBI's URL API documentation |
-| 5 | A public BOLD v5 identification API exists and allows this use | BOLD documentation and terms, before starting Phase 2 BOLD work |
+| 5 | A public BOLD v5 identification API exists and allows this use | **Checked: no.** The v4 engine is retired and the v5 APIs have no sequence search, so the BOLD option was dropped (step 8) |
 | 6 | Which primers the lab actually used | Ask the lab. Until then, auto-detect decides |
 
 **Found from the data:** the 638 bp screenshot query is **VN248-2 bases 43–680** (the Geneious trim). Submitted to NCBI on 2026-11-06, it gave PX112589.1 as hit #1 with 100.00% identity, 100% query cover, E value 0.0 and accession length 638. The bit score was 1176.0 as computed; NCBI's page showed 1175. The app shows bit scores rounded down, as NCBI's pages appear to do, so small differences like this are expected.
@@ -555,6 +573,9 @@ Code layout:
 | `src-tauri/src/analysis.rs` | Per-read pipeline: primers, trim, direction, QC flags |
 | `src-tauri/src/blast.rs` | NCBI URL API client and JSON2_S parser |
 | `src-tauri/src/compile.rs` | Closest species per sample, species counts |
+| `src-tauri/src/assembly.rs` | Forward/reverse overlap alignment and consensus |
+| `src-tauri/src/pairs.rs` | Pair suggestions, confirm/unpair/swap, consensus as the sample's sequence |
+| `src-tauri/src/pdf.rs` | PDF report (Typst) |
 | `src-tauri/src/store.rs` | `.coiproj` project files |
 | `src-tauri/src/export.rs` | Excel, FASTA, raw results |
 | `src-tauri/src/app.rs` | Tauri commands, background BLAST runner, auto-save |
@@ -580,3 +601,11 @@ Setting `COI_BLAST_BASE_URL` points the app at another server instead of NCBI. T
 | 9 | Installer on clean Windows 10 and 11 | Installer built; not yet tried on clean machines |
 | 10 | Compile results | Passed: 18 samples, 5 species, counts add up |
 | 11 | 1000-sample scale | Compile of 1000 samples takes 0.06 s. Resume after closing the app mid-run passed against a mock server. A real NCBI run of 100+ samples is still to do |
+
+## Status (Phase 2)
+
+| Item | Status |
+|------|--------|
+| Forward/reverse pairs | Done. Tested on a realistic pair built from VN234-2's real trace (`tests/pairs_flow.rs`, `examples/make_pair_zip.rs`). Results: the pair is suggested; the consensus is 654 bp versus 629 bp for the forward read alone; there is no primer and no conflict; the reverse read is not searched on its own; edits flow into the consensus; swap and unpair work; reads that don't overlap wait for a choice. In the app: suggestion, confirm, Trim/QC banner and consensus all checked. **Not yet tested on real forward/reverse files from the lab.** |
+| PDF report | Done. Summary and full report for the example batch with real NCBI results; pages checked visually; export from the app works |
+| BOLD search | Dropped: no public identification API (step 8) |

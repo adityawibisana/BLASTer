@@ -41,6 +41,8 @@ pub fn new_read(id: String, file_name: String, trace: &AbifTrace) -> Read {
         excluded: false,
         derived: Derived::default(),
         result: None,
+        pair: None,
+        paired_with: None,
     }
 }
 

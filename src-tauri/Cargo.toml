@@ -1,6 +1,6 @@
 [package]
 name = "coi-barcode-blast"
-version = "0.1.0"
+version = "0.2.0"
 description = "COI Barcode BLAST"
 edition = "2024"
 rust-version = "1.88"
@@ -24,4 +24,10 @@ tauri-plugin-dialog = "2.7.3"
 tauri-plugin-opener = "2.5.5"
 thiserror = "2.0.21"
 tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "time", "sync"] }
+typst = "0.14.0"
+typst-assets = { version = "0.14", features = ["fonts"] }
+typst-pdf = "0.14.0"
 zip = { version = "9.4.1", default-features = false, features = ["deflate"] }
+
+[dev-dependencies]
+typst-render = "0.14"

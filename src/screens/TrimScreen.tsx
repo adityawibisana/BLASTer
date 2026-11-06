@@ -30,6 +30,14 @@ export default function TrimScreen() {
     api.getTrace(read.id).then(setTrace).catch((e) => toast.error(errorText(e)));
   }, [read?.id]);
 
+  // A forward read in a pair holds the consensus; show this read's own stats instead.
+  const committedKey = read ? `${read.id}:${(read.manualTrim ?? read.autoTrim).start}:${(read.manualTrim ?? read.autoTrim).end}` : "";
+  useEffect(() => {
+    if (!read?.pair) return;
+    const t = read.manualTrim ?? read.autoTrim;
+    api.previewTrim(read.id, t.start, t.end).then(setPreview).catch(() => {});
+  }, [committedKey, read?.pair?.reverseId]);
+
   const listColumns: Column<ReadView>[] = useMemo(
     () => [
       { key: "id", header: "Sample", width: 104, render: (r) => <span className="font-medium">{r.id}</span>, sort: (r) => r.id },
@@ -83,8 +91,11 @@ export default function TrimScreen() {
   const commit = async (r: Range) => {
     await run(() => api.setTrim(read.id, r.start, r.end));
     setDragRange(null);
-    setPreview(null);
+    if (!read.pair) setPreview(null);
   };
+  const inPair = !!read.pair || !!read.pairedWith;
+  const partnerId = read.pair?.reverseId ?? read.pairedWith;
+  const sample = read.pair ? read : project.reads.find((r) => r.id === read.pairedWith) ?? null;
 
   const hqTone = d.hqPct > project.settings.hqThreshold ? "ok" : "bad";
 
@@ -109,6 +120,8 @@ export default function TrimScreen() {
             <select
               className="input"
               value={read.directionManual ?? "auto"}
+              disabled={inPair}
+              title={inPair ? "Direction is set by the pair; use Swap F/R on the Import screen" : undefined}
               onChange={(e) => run(() => api.setDirection(read.id, e.target.value === "auto" ? null : (e.target.value as Dir)))}
             >
               <option value="auto">Direction: auto ({read.directionAuto ?? "unknown"})</option>
@@ -143,7 +156,36 @@ export default function TrimScreen() {
           </div>
         </div>
 
-        {read.derived.qcFailed && (
+        {inPair && sample?.pair && (
+          <div className="card mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-accent bg-accent-soft px-4 py-2.5">
+            <span>
+              {read.pair ? "Forward read" : "Reverse read"} of pair <b>{sample.id}</b> + <b>{sample.pair.reverseId}</b>.
+            </span>
+            {sample.pair.noOverlap ? (
+              <span className="text-bad">The two reads do not overlap; choose a read on the Import screen.</span>
+            ) : (
+              <span className="text-muted">
+                Consensus {sample.derived.finalLen} bp, {sample.derived.hqPct.toFixed(1)}% HQ · overlap {sample.pair.overlap} bp ·{" "}
+                {sample.pair.disagreements} disagreements
+                {sample.pair.conflicts.length > 0 && (
+                  <span className="text-warn">
+                    {" "}
+                    · conflicts at consensus position{sample.pair.conflicts.length > 1 ? "s" : ""}{" "}
+                    {sample.pair.conflicts.slice(0, 8).map((c) => c + 1).join(", ")}
+                    {sample.pair.conflicts.length > 8 ? "…" : ""}
+                  </span>
+                )}
+              </span>
+            )}
+            {partnerId && (
+              <button className="btn btn-sm ml-auto" onClick={() => select(partnerId)}>
+                Open {partnerId}
+              </button>
+            )}
+          </div>
+        )}
+
+        {read.derived.qcFailed && !inPair && (
           <div className="card mb-4 flex items-center justify-between gap-3 border-bad bg-bad-soft px-4 py-2.5">
             <div className="text-bad">
               Failed QC: no region of at least {project.settings.minLength} bases is above {project.settings.hqThreshold}% high
@@ -188,16 +230,31 @@ export default function TrimScreen() {
           </div>
         </div>
 
-        <div className="mt-5 flex items-center justify-between">
-          <div className="font-semibold">Final sequence (5'→3' along COI, {d.finalLen} bp)</div>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={!read.excluded} onChange={(e) => run(() => api.setInclusion([read.id], undefined, !e.target.checked))} />
-            Include in BLAST
-          </label>
-        </div>
-        <pre className="card mt-2 max-h-[180px] overflow-auto p-3 font-mono text-[12px] leading-5 break-all whitespace-pre-wrap select-text">
-          {d.finalSeq || "(empty)"}
-        </pre>
+        {(() => {
+          // For a pair, the sequence that is searched is the consensus, stored on the forward read.
+          const shown = sample?.pair && !sample.pair.noOverlap ? sample.derived : d;
+          const owner = sample?.pair ? sample : read;
+          return (
+            <>
+              <div className="mt-5 flex items-center justify-between">
+                <div className="font-semibold">
+                  {sample?.pair && !sample.pair.noOverlap ? "Consensus" : "Final sequence"} (5'→3' along COI, {shown.finalLen} bp)
+                </div>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={!owner.excluded}
+                    onChange={(e) => run(() => api.setInclusion([owner.id], undefined, !e.target.checked))}
+                  />
+                  Include in BLAST
+                </label>
+              </div>
+              <pre className="card mt-2 max-h-[180px] overflow-auto p-3 font-mono text-[12px] leading-5 break-all whitespace-pre-wrap select-text">
+                {shown.finalSeq || "(empty)"}
+              </pre>
+            </>
+          );
+        })()}
       </div>
     </div>
   );

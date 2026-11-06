@@ -3,6 +3,8 @@ import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { api } from "../api";
 import { useApp } from "../state";
 import { Badge, Flags, PageHeader } from "../components/ui";
+import { PairsPanel } from "../components/PairsPanel";
+import { readsLabel } from "../lib/format";
 import { VirtualTable, type Column } from "../components/VirtualTable";
 import type { Dir, ReadView } from "../types";
 
@@ -34,7 +36,10 @@ export default function ImportScreen() {
         key: "dir",
         header: "Direction",
         width: 168,
-        render: (r) => (
+        render: (r) =>
+          r.pair || r.pairedWith ? (
+            <span className="text-muted">{readsLabel(r)}</span>
+          ) : (
           <select
             className="input h-7 w-full py-0"
             value={r.directionManual ?? "auto"}
@@ -115,6 +120,9 @@ export default function ImportScreen() {
             versions) can both appear.
           </div>
         )}
+        <div className="mt-3">
+          <PairsPanel />
+        </div>
         {project.skipped.length > 0 && (
           <div className="card mt-3 border-warn bg-warn-soft px-4 py-2.5">
             <div className="font-semibold text-warn">{project.skipped.length} files skipped</div>

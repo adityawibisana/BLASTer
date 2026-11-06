@@ -25,6 +25,8 @@ pub fn flag_label(f: Flag) -> &'static str {
         Flag::NoHits => "No hits",
         Flag::Outdated => "Outdated",
         Flag::NotSearched => "Not searched",
+        Flag::FrConflict => "F/R conflict",
+        Flag::NoOverlap => "F/R do not overlap",
     }
 }
 
@@ -106,7 +108,7 @@ pub fn excel(h: &ProjectHandle, path: &Path) -> Result<()> {
             let top = h.result_for(r).and_then(|q| q.hits.first());
             ws.write_string(row, 0, &r.id)?;
             ws.write_string(row, 1, &r.file_name)?;
-            ws.write_string(row, 2, "single")?;
+            ws.write_string(row, 2, reads_text(r))?;
             ws.write_string(row, 3, primer_text(r))?;
             ws.write_number(row, 4, r.derived.final_len as f64)?;
             ws.write_number_with_format(row, 5, r.derived.hq_pct, &f.pct)?;
@@ -220,6 +222,7 @@ pub fn excel(h: &ProjectHandle, path: &Path) -> Result<()> {
                 ("Ambiguous bases", 14.0),
                 ("Manually edited", 14.0),
                 ("Included in BLAST", 15.0),
+                ("Forward/reverse pair", 60.0),
             ],
         )?;
         for (i, r) in p.reads.iter().enumerate() {
@@ -244,8 +247,9 @@ pub fn excel(h: &ProjectHandle, path: &Path) -> Result<()> {
             ws.write_number(row, 14, d.ambiguous as f64)?;
             ws.write_string(row, 15, if r.manual_trim.is_some() || r.direction_manual.is_some() { "yes" } else { "no" })?;
             ws.write_string(row, 16, if d.eligible { "yes" } else { "no" })?;
+            ws.write_string(row, 17, pair_text(r))?;
         }
-        ws.autofilter(0, 0, p.reads.len() as u32, 16)?;
+        ws.autofilter(0, 0, p.reads.len() as u32, 17)?;
     }
 
     // Hits
@@ -297,7 +301,7 @@ pub fn excel(h: &ProjectHandle, path: &Path) -> Result<()> {
             let row = i as u32 + 1;
             ws.write_string(row, 0, &r.id)?;
             ws.write_number(row, 1, r.derived.final_len as f64)?;
-            ws.write_string(row, 2, crate::fasta::header(r))?;
+            ws.write_string(row, 2, crate::fasta::header(r, crate::fasta::partner(&p.reads, r)))?;
             ws.write_string(row, 3, &r.derived.final_seq)?;
         }
     }
@@ -347,6 +351,35 @@ pub fn excel(h: &ProjectHandle, path: &Path) -> Result<()> {
     Ok(())
 }
 
+/// "single", "F + R", or "R of <forward ID>" for the reverse read of a pair.
+pub fn reads_text(r: &crate::model::Read) -> String {
+    match (&r.pair, &r.paired_with) {
+        (Some(p), _) if p.no_overlap => match p.use_only {
+            Some(Dir::F) => "F only (no overlap)".into(),
+            Some(Dir::R) => "R only (no overlap)".into(),
+            None => "F + R, no overlap".into(),
+        },
+        (Some(_), _) => "F + R".into(),
+        (None, Some(f)) => format!("R of {f}"),
+        _ => "single".into(),
+    }
+}
+
+fn pair_text(r: &crate::model::Read) -> String {
+    match &r.pair {
+        Some(p) if p.no_overlap => format!("with {}: no overlap", p.reverse_id),
+        Some(p) => format!(
+            "with {}: overlap {} bp, {:.1}% identity, {} disagreements, {} conflicts",
+            p.reverse_id,
+            p.overlap,
+            p.identity,
+            p.disagreements,
+            p.conflicts.len()
+        ),
+        None => r.paired_with.as_ref().map(|f| format!("reverse read of {f}")).unwrap_or_default(),
+    }
+}
+
 fn yes_no(b: bool) -> String {
     if b { "yes".into() } else { "no".into() }
 }
@@ -376,7 +409,7 @@ pub fn reason_text(reason: Option<&str>) -> &'static str {
 
 pub fn fasta(h: &ProjectHandle, path: &Path, only_eligible: bool) -> Result<usize> {
     let reads: Vec<_> = h.project.reads.iter().filter(|r| !only_eligible || r.derived.eligible).collect();
-    std::fs::write(path, crate::fasta::multi(reads.iter().copied()))?;
+    std::fs::write(path, crate::fasta::multi(&h.project.reads, reads.iter().copied()))?;
     Ok(reads.len())
 }
 

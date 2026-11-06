@@ -32,6 +32,8 @@ fn new_project(dir: &std::path::Path) -> store::ProjectHandle {
         skipped: imported.skipped,
         blast: BlastState::default(),
         compiled: None,
+        pair_suggestions: Vec::new(),
+        rejected_pairs: Vec::new(),
     };
     store::create(&dir.join("test.coiproj"), project, imported.files).unwrap()
 }
@@ -43,7 +45,7 @@ fn add_fixture_group(h: &mut store::ProjectHandle) {
         id: "g0001".into(),
         sample_ids: eligible.iter().map(|r| r.id.clone()).collect(),
         fingerprints: eligible.iter().map(|r| r.derived.fingerprint.clone()).collect(),
-        fasta: fasta::multi(eligible.iter().copied()),
+        fasta: fasta::multi(&h.project.reads, eligible.iter().copied()),
         status: GroupStatus::Submitted,
         rid: Some("EVN9M6ED014".into()),
         rtoe_secs: Some(30),
@@ -124,6 +126,17 @@ fn full_project_lifecycle() {
         assert!(wb.contains(&format!("name=\"{sheet}\"")), "missing sheet {sheet}");
     }
     assert!(zip.by_name("xl/charts/chart1.xml").is_ok(), "species chart missing");
+
+    // PDF reports: summary and full. Copies are kept in the target dir for inspection.
+    for (full, name) in [(false, "report-summary.pdf"), (true, "report-full.pdf")] {
+        let out = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(name);
+        let size = coi_blast_lib::pdf::write_report(&h, &out, &coi_blast_lib::pdf::Options { full }).unwrap();
+        let bytes = std::fs::read(&out).unwrap();
+        assert!(bytes.starts_with(b"%PDF"));
+        assert!(size > 20_000, "{name} is only {size} bytes");
+        let markup = coi_blast_lib::pdf::report_markup(&h, &coi_blast_lib::pdf::Options { full }).unwrap();
+        std::fs::write(out.with_extension("typ"), markup).unwrap();
+    }
 
     // FASTA export and raw results.
     assert_eq!(export::fasta(&h, &dir.join("out.fasta"), true).unwrap(), 18);

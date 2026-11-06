@@ -1,12 +1,15 @@
 pub mod abif;
 pub mod analysis;
 pub mod app;
+pub mod assembly;
 pub mod blast;
 pub mod compile;
 pub mod export;
 pub mod fasta;
 pub mod importer;
 pub mod model;
+pub mod pairs;
+pub mod pdf;
 pub mod primers;
 pub mod seq;
 pub mod store;
@@ -66,6 +69,12 @@ pub fn run() {
             app::compile_results,
             app::export_excel,
             app::export_fasta,
+            app::export_pdf,
+            app::confirm_pair,
+            app::reject_pair,
+            app::unpair,
+            app::swap_pair,
+            app::set_pair_use_only,
             app::export_raw,
             app::start_blast,
             app::cancel_blast,

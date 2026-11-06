@@ -16,7 +16,26 @@ export type Flag =
   | "mixedSpecies"
   | "noHits"
   | "outdated"
-  | "notSearched";
+  | "notSearched"
+  | "frConflict"
+  | "noOverlap";
+
+export interface PairInfo {
+  reverseId: string;
+  overlap: number;
+  disagreements: number;
+  conflicts: number[];
+  identity: number;
+  noOverlap: boolean;
+  useOnly: Dir | null;
+}
+
+export interface PairSuggestion {
+  forwardId: string;
+  reverseId: string;
+  overlap: number;
+  identity: number;
+}
 
 export interface PrimerSet {
   name: string;
@@ -137,6 +156,8 @@ export interface ReadView {
   outdated: boolean;
   queued: boolean;
   topHit: HitRow | null;
+  pair: PairInfo | null;
+  pairedWith: string | null;
 }
 
 export interface GroupView {
@@ -196,6 +217,7 @@ export interface ProjectView {
   compiled: Compiled | null;
   recompileNeeded: boolean;
   primerSummary: { setName: string | null; reads: number }[];
+  pairSuggestions: PairSuggestion[];
 }
 
 export interface RecentProject {

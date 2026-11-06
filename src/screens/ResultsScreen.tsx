@@ -9,7 +9,7 @@ import { api, errorText } from "../api";
 import { useApp } from "../state";
 import { Badge, Empty, Flags, PageHeader } from "../components/ui";
 import { VirtualTable, type Column } from "../components/VirtualTable";
-import { alignmentBlocks, cover, evalue, pct, score, shortDate } from "../lib/format";
+import { alignmentBlocks, cover, evalue, pct, readsLabel, score, shortDate } from "../lib/format";
 import CompiledView from "./CompiledView";
 import type { HitDetail, HitRow, ReadView, SampleResult } from "../types";
 
@@ -39,7 +39,7 @@ export default function ResultsScreen() {
     () => [
       { key: "id", header: "Sample", width: 112, render: (r) => <span className="font-medium">{r.id}</span>, sort: (r) => r.id },
       { key: "status", header: "Status", width: 170, render: (r) => <Flags flags={r.flags} />, sort: (r) => r.flags.length },
-      { key: "reads", header: "Reads", width: 62, render: () => "single" },
+      { key: "reads", header: "Reads", width: 92, render: (r) => readsLabel(r), sort: (r) => readsLabel(r) },
       {
         key: "primers",
         header: "Primers",

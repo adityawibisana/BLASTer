@@ -32,13 +32,25 @@ export const FLAG_LABEL: Record<Flag, string> = {
   noHits: "No hits",
   outdated: "Outdated",
   notSearched: "Not searched",
+  frConflict: "F/R conflict",
+  noOverlap: "F/R do not overlap",
 };
+
+/** How a sample was read: single, an assembled pair, or the reverse half of one. */
+export function readsLabel(r: { pair: { noOverlap: boolean; useOnly: string | null } | null; pairedWith: string | null }) {
+  if (r.pair) {
+    if (!r.pair.noOverlap) return "F + R";
+    return r.pair.useOnly ? `${r.pair.useOnly} only` : "F + R, no overlap";
+  }
+  return r.pairedWith ? `R of ${r.pairedWith}` : "single";
+}
 
 /** How serious a flag is, for colouring. */
 export function flagTone(f: Flag): "bad" | "warn" | "info" {
   switch (f) {
     case "failedQc":
     case "noHits":
+    case "noOverlap":
       return "bad";
     case "edited":
     case "notSearched":

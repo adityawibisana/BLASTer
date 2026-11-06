@@ -11,7 +11,7 @@ async fn main() -> anyhow::Result<()> {
     let settings = coi_blast_lib::model::Settings::default();
     let imported = coi_blast_lib::importer::import_zip(args[1].as_ref(), &settings)?;
     let reads: Vec<_> = imported.reads.iter().filter(|r| r.derived.eligible).collect();
-    let fasta = coi_blast_lib::fasta::multi(reads.iter().copied());
+    let fasta = coi_blast_lib::fasta::multi(&imported.reads, reads.iter().copied());
     println!("submitting {} sequences", reads.len());
     let client = Client::new()?;
     let (rid, rtoe) = client.put(&fasta, &settings.blast, "").await?;

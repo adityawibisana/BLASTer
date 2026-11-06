@@ -136,6 +136,35 @@ pub enum Flag {
     NoHits,
     Outdated,
     NotSearched,
+    /// F and R disagree at a position where both are high quality.
+    FrConflict,
+    /// The F and R reads of a pair do not overlap.
+    NoOverlap,
+}
+
+/// A confirmed forward/reverse pair, stored on the forward read.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PairInfo {
+    pub reverse_id: String,
+    /// Aligned columns where both reads have a base or a gap.
+    pub overlap: usize,
+    pub disagreements: usize,
+    /// Consensus positions (0-based) where both reads were high quality but differed.
+    pub conflicts: Vec<usize>,
+    pub identity: f64,
+    pub no_overlap: bool,
+    /// When the reads do not overlap: search only this read.
+    pub use_only: Option<Dir>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PairSuggestion {
+    pub forward_id: String,
+    pub reverse_id: String,
+    pub overlap: usize,
+    pub identity: f64,
 }
 
 /// Values recomputed from the raw read and the user's choices.
@@ -191,6 +220,12 @@ pub struct Read {
     pub excluded: bool,
     pub derived: Derived,
     pub result: Option<ResultRef>,
+    /// Set on the forward read of a confirmed pair; its derived values are the consensus.
+    #[serde(default)]
+    pub pair: Option<PairInfo>,
+    /// Set on the reverse read of a confirmed pair: the forward read's ID.
+    #[serde(default)]
+    pub paired_with: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -283,4 +318,9 @@ pub struct Project {
     pub skipped: Vec<SkippedFile>,
     pub blast: BlastState,
     pub compiled: Option<Compiled>,
+    #[serde(default)]
+    pub pair_suggestions: Vec<PairSuggestion>,
+    /// Suggestions the user rejected, as (forward ID, reverse ID); not suggested again.
+    #[serde(default)]
+    pub rejected_pairs: Vec<(String, String)>,
 }

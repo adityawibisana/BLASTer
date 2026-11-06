@@ -37,7 +37,14 @@ export const api = {
   getHitDetail: (id: string, rank: number) => invoke<HitDetail>("get_hit_detail", { id, rank }),
   compileResults: () => invoke<ProjectView>("compile_results"),
 
+  confirmPair: (forwardId: string, reverseId: string) => invoke<void>("confirm_pair", { forwardId, reverseId }),
+  rejectPair: (forwardId: string, reverseId: string) => invoke<void>("reject_pair", { forwardId, reverseId }),
+  unpair: (forwardId: string) => invoke<void>("unpair", { forwardId }),
+  swapPair: (forwardId: string) => invoke<void>("swap_pair", { forwardId }),
+  setPairUseOnly: (forwardId: string, useOnly: Dir | null) => invoke<void>("set_pair_use_only", { forwardId, useOnly }),
+
   exportExcel: (path: string) => invoke<void>("export_excel", { path }),
+  exportPdf: (path: string, full: boolean) => invoke<number>("export_pdf", { path, full }),
   exportFasta: (path: string, onlyEligible: boolean) => invoke<number>("export_fasta", { path, onlyEligible }),
   exportRaw: (path: string) => invoke<number>("export_raw", { path }),
 

@@ -210,7 +210,7 @@ pub async fn create_project(app: AppHandle, zip_path: String) -> CmdResult<Value
         let name = zip.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "Batch".into());
         std::fs::create_dir_all(&docs)?;
         let path = store::unique_path(&docs, &name);
-        let project = Project {
+        let mut project = Project {
             format: PROJECT_FORMAT,
             name,
             created_at: chrono::Local::now().to_rfc3339(),
@@ -220,7 +220,10 @@ pub async fn create_project(app: AppHandle, zip_path: String) -> CmdResult<Value
             skipped: imported.skipped,
             blast: BlastState::default(),
             compiled: None,
+            pair_suggestions: Vec::new(),
+            rejected_pairs: Vec::new(),
         };
+        crate::pairs::suggest(&mut project);
         store::create(&path, project, imported.files)
     })
     .await
@@ -294,11 +297,10 @@ pub fn preview_trim(state: State<'_, AppState>, id: String, start: usize, end: u
 #[tauri::command]
 pub fn set_trim(app: AppHandle, state: State<'_, AppState>, id: String, start: usize, end: usize) -> CmdResult<()> {
     mutate(&state, |h| {
-        let s = h.project.settings.clone();
         let r = find_read(h, &id)?;
         let range = Range { start: start.min(end).min(r.raw_length), end: end.max(start).min(r.raw_length) };
         r.manual_trim = (range != r.auto_trim).then_some(range);
-        analysis::refresh(r, &s);
+        crate::pairs::refresh_read(&mut h.project, &id);
         Ok(())
     })?;
     changed(&app, "read");
@@ -308,11 +310,13 @@ pub fn set_trim(app: AppHandle, state: State<'_, AppState>, id: String, start: u
 #[tauri::command]
 pub fn reset_read(app: AppHandle, state: State<'_, AppState>, id: String) -> CmdResult<()> {
     mutate(&state, |h| {
-        let s = h.project.settings.clone();
         let r = find_read(h, &id)?;
         r.manual_trim = None;
-        r.direction_manual = None;
-        analysis::refresh(r, &s);
+        if r.pair.is_none() && r.paired_with.is_none() {
+            r.direction_manual = None;
+        }
+        crate::pairs::refresh_read(&mut h.project, &id);
+        crate::pairs::suggest(&mut h.project);
         Ok(())
     })?;
     changed(&app, "read");
@@ -322,10 +326,13 @@ pub fn reset_read(app: AppHandle, state: State<'_, AppState>, id: String) -> Cmd
 #[tauri::command]
 pub fn set_direction(app: AppHandle, state: State<'_, AppState>, id: String, direction: Option<Dir>) -> CmdResult<()> {
     mutate(&state, |h| {
-        let s = h.project.settings.clone();
         let r = find_read(h, &id)?;
+        if r.pair.is_some() || r.paired_with.is_some() {
+            anyhow::bail!("{id} is in a pair; use Swap F/R or Unpair to change its direction");
+        }
         r.direction_manual = direction.filter(|d| Some(*d) != r.direction_auto);
-        analysis::refresh(r, &s);
+        crate::pairs::refresh_read(&mut h.project, &id);
+        crate::pairs::suggest(&mut h.project);
         Ok(())
     })?;
     changed(&app, "read");
@@ -341,7 +348,6 @@ pub fn set_inclusion(
     excluded: Option<bool>,
 ) -> CmdResult<()> {
     mutate(&state, |h| {
-        let s = h.project.settings.clone();
         for id in &ids {
             let r = find_read(h, id)?;
             if let Some(v) = include_failed {
@@ -350,7 +356,7 @@ pub fn set_inclusion(
             if let Some(v) = excluded {
                 r.excluded = v;
             }
-            analysis::refresh(r, &s);
+            crate::pairs::refresh_read(&mut h.project, id);
         }
         Ok(())
     })?;
@@ -382,10 +388,58 @@ pub async fn update_settings(app: AppHandle, settings: Settings) -> CmdResult<Va
                 analysis::refresh(r, &settings);
             }
         }
+        crate::pairs::refresh_all_pairs(&mut h.project);
+        crate::pairs::suggest(&mut h.project);
         Ok(())
     })?;
     changed(&app, "settings");
     view_json(&state)
+}
+
+// ---------- forward/reverse pairs ----------
+
+#[tauri::command]
+pub fn confirm_pair(app: AppHandle, state: State<'_, AppState>, forward_id: String, reverse_id: String) -> CmdResult<()> {
+    mutate(&state, |h| crate::pairs::confirm(&mut h.project, &forward_id, &reverse_id))?;
+    changed(&app, "pairs");
+    Ok(())
+}
+
+#[tauri::command]
+pub fn reject_pair(app: AppHandle, state: State<'_, AppState>, forward_id: String, reverse_id: String) -> CmdResult<()> {
+    mutate(&state, |h| {
+        crate::pairs::reject(&mut h.project, &forward_id, &reverse_id);
+        Ok(())
+    })?;
+    changed(&app, "pairs");
+    Ok(())
+}
+
+#[tauri::command]
+pub fn unpair(app: AppHandle, state: State<'_, AppState>, forward_id: String) -> CmdResult<()> {
+    mutate(&state, |h| {
+        crate::pairs::unpair(&mut h.project, &forward_id);
+        Ok(())
+    })?;
+    changed(&app, "pairs");
+    Ok(())
+}
+
+#[tauri::command]
+pub fn swap_pair(app: AppHandle, state: State<'_, AppState>, forward_id: String) -> CmdResult<()> {
+    mutate(&state, |h| crate::pairs::swap(&mut h.project, &forward_id))?;
+    changed(&app, "pairs");
+    Ok(())
+}
+
+#[tauri::command]
+pub fn set_pair_use_only(app: AppHandle, state: State<'_, AppState>, forward_id: String, use_only: Option<Dir>) -> CmdResult<()> {
+    mutate(&state, |h| {
+        crate::pairs::set_use_only(&mut h.project, &forward_id, use_only);
+        Ok(())
+    })?;
+    changed(&app, "pairs");
+    Ok(())
 }
 
 // ---------- results ----------
@@ -457,6 +511,26 @@ pub async fn export_excel(app: AppHandle, path: String) -> CmdResult<()> {
 }
 
 #[tauri::command]
+pub async fn export_pdf(app: AppHandle, path: String, full: bool) -> CmdResult<usize> {
+    let app2 = app.clone();
+    tokio::task::spawn_blocking(move || {
+        let state = app2.state::<AppState>();
+        // Build the markup under the lock, typeset outside it.
+        let markup = {
+            let guard = state.lock();
+            let h = guard.as_ref().ok_or_else(|| anyhow::anyhow!("no project is open"))?;
+            crate::pdf::report_markup(h, &crate::pdf::Options { full })?
+        };
+        let bytes = crate::pdf::render(markup)?;
+        std::fs::write(&path, &bytes)?;
+        Ok::<usize, anyhow::Error>(bytes.len())
+    })
+    .await
+    .map_err(err)?
+    .map_err(err)
+}
+
+#[tauri::command]
 pub fn export_fasta(state: State<'_, AppState>, path: String, only_eligible: bool) -> CmdResult<usize> {
     read_only(&state, |h| crate::export::fasta(h, Path::new(&path), only_eligible))
 }
@@ -500,7 +574,7 @@ pub fn start_blast(app: AppHandle, state: State<'_, AppState>, only_changed: boo
                 id: format!("g{next:04}"),
                 sample_ids: chunk.iter().map(|r| r.id.clone()).collect(),
                 fingerprints: chunk.iter().map(|r| r.derived.fingerprint.clone()).collect(),
-                fasta: crate::fasta::multi(chunk.iter().copied()),
+                fasta: crate::fasta::multi(&h.project.reads, chunk.iter().copied()),
                 status: GroupStatus::Pending,
                 rid: None,
                 rtoe_secs: None,

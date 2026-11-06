@@ -33,6 +33,8 @@ pub struct ReadView<'a> {
     pub outdated: bool,
     pub queued: bool,
     pub top_hit: Option<&'a HitRow>,
+    pub pair: &'a Option<PairInfo>,
+    pub paired_with: &'a Option<String>,
 }
 
 #[derive(Serialize)]
@@ -71,6 +73,7 @@ pub struct ProjectView<'a> {
     pub compiled: &'a Option<Compiled>,
     pub recompile_needed: bool,
     pub primer_summary: Vec<PrimerCount>,
+    pub pair_suggestions: &'a [PairSuggestion],
 }
 
 /// Every status flag for a sample: QC flags plus result flags.
@@ -166,6 +169,8 @@ pub fn project_view(h: &ProjectHandle, blast_running: bool) -> ProjectView<'_> {
             outdated: h.outdated(r),
             queued: queued.contains(r.id.as_str()),
             top_hit: h.result_for(r).and_then(|q| q.hits.first()),
+            pair: &r.pair,
+            paired_with: &r.paired_with,
         })
         .collect();
     let mut summary: Vec<PrimerCount> = Vec::new();
@@ -204,6 +209,7 @@ pub fn project_view(h: &ProjectHandle, blast_running: bool) -> ProjectView<'_> {
         compiled: &p.compiled,
         recompile_needed: recompile_needed(h),
         primer_summary: summary,
+        pair_suggestions: &p.pair_suggestions,
     }
 }
 

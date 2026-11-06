@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
-import { FileArchive, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
+import { FileArchive, FileSpreadsheet, FileText, FileType2, Loader2 } from "lucide-react";
 import { api } from "../api";
 import { useApp } from "../state";
 import { PageHeader } from "../components/ui";
@@ -9,7 +9,10 @@ export default function ExportScreen() {
   const { project, run } = useApp();
   const [busy, setBusy] = useState<string | null>(null);
   const [onlyEligible, setOnlyEligible] = useState(true);
+  const [fullReport, setFullReport] = useState<boolean | null>(null);
   if (!project) return null;
+  // Summary only by default for large batches: a full report has a page per sample.
+  const full = fullReport ?? project.reads.length <= 100;
 
   const base = project.name;
   const withBusy = async (label: string, fn: () => Promise<unknown>) => {
@@ -28,6 +31,10 @@ export default function ExportScreen() {
   const fasta = async () => {
     const path = await save({ defaultPath: `${base}.fasta`, filters: [{ name: "FASTA", extensions: ["fasta", "fa"] }] });
     if (path) withBusy("fasta", () => run(async () => api.exportFasta(path, onlyEligible), `Saved ${path}`));
+  };
+  const pdf = async () => {
+    const path = await save({ defaultPath: `${base}-report.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] });
+    if (path) withBusy("pdf", () => run(() => api.exportPdf(path, full), `Saved ${path}`));
   };
   const raw = async () => {
     const path = await save({ defaultPath: `${base}-ncbi-results.zip`, filters: [{ name: "Zip", extensions: ["zip"] }] });
@@ -54,6 +61,30 @@ export default function ExportScreen() {
           </button>
         </div>
         <div className="card flex items-start gap-4 p-4">
+          <FileType2 className="mt-0.5 text-accent" size={26} />
+          <div className="flex-1">
+            <div className="font-semibold">PDF report (.pdf)</div>
+            <div className="mt-1 text-muted">
+              Cover page with the settings used, the compiled species chart and table, the batch overview, and an appendix
+              with the final sequences.
+            </div>
+            <div className="mt-2 flex gap-4">
+              <label className="flex items-center gap-2">
+                <input type="radio" name="report" checked={!full} onChange={() => setFullReport(false)} />
+                Summary only
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="radio" name="report" checked={full} onChange={() => setFullReport(true)} />
+                Full report: one page per sample with top 10 hits and the best alignment (
+                {project.reads.filter((r) => !r.pairedWith).length} pages more)
+              </label>
+            </div>
+          </div>
+          <button className="btn btn-primary" onClick={pdf} disabled={!!busy}>
+            {busy === "pdf" && <Loader2 size={14} className="animate-spin" />} Save PDF…
+          </button>
+        </div>
+        <div className="card flex items-start gap-4 p-4">
           <FileText className="mt-0.5 text-accent" size={26} />
           <div className="flex-1">
             <div className="font-semibold">FASTA (.fasta)</div>
@@ -77,7 +108,6 @@ export default function ExportScreen() {
             {busy === "raw" && <Loader2 size={14} className="animate-spin" />} Save raw results…
           </button>
         </div>
-        <div className="label px-1">A PDF report is planned for Phase 2.</div>
       </div>
     </div>
   );
