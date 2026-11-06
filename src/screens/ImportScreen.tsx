@@ -19,7 +19,7 @@ export default function ImportScreen() {
       { key: "flags", header: "QC status", width: 170, render: (r) => <Flags flags={r.derived.flags} /> },
       { key: "file", header: "File", width: 120, render: (r) => <span className="text-muted">{r.fileName}</span> },
       { key: "raw", header: "Raw length", width: 90, align: "right", render: (r) => r.rawLength, sort: (r) => r.rawLength },
-      { key: "hq", header: "% HQ raw", width: 84, align: "right", render: (r) => r.rawHqPct.toFixed(1), sort: (r) => r.rawHqPct },
+      { key: "hq", header: "% HQ raw", width: 84, align: "right", render: (r) => (r.hasTrace ? r.rawHqPct.toFixed(1) : "—"), sort: (r) => (r.hasTrace ? r.rawHqPct : -1) },
       { key: "gc", header: "% GC", width: 64, align: "right", render: (r) => r.rawGcPct.toFixed(1), sort: (r) => r.rawGcPct },
       { key: "amb", header: "Ambig.", width: 64, align: "right", render: (r) => r.rawAmbiguous },
       {
@@ -71,6 +71,7 @@ export default function ImportScreen() {
   const passed = reads.filter((r) => r.derived.eligible).length;
   const failed = reads.filter((r) => r.derived.qcFailed).length;
   const unknownDir = reads.filter((r) => r.derived.direction === null).length;
+  const fromFasta = reads.filter((r) => !r.hasTrace).length;
 
   return (
     <div className="flex h-full flex-col">
@@ -118,6 +119,33 @@ export default function ImportScreen() {
           <div className="label mt-1.5 px-1">
             Each read uses the primer set that matches it best. Sets that bind the same site (e.g. Folmer and its degenerate
             versions) can both appear.
+          </div>
+        )}
+        {fromFasta > 0 && (
+          <div className="card mt-3 border-warn bg-warn-soft px-4 py-2.5">
+            <div className="font-semibold text-warn">
+              {fromFasta === reads.length ? "All samples" : `${fromFasta} of ${reads.length} samples`} imported from FASTA: sequence
+              only, no quality values
+            </div>
+            <ul className="m-0 mt-1 list-disc pl-5 text-[12.5px]">
+              <li>
+                Every base is taken as correct. Base-call errors and noisy read ends cannot be detected, so nothing is quality
+                trimmed and % HQ is not available. QC checks only length, stop codons and ambiguous bases.
+              </li>
+              <li>There is no chromatogram, so doubtful bases cannot be checked by eye and trims cannot be adjusted on the trace.</li>
+              <li>
+                Forward and reverse reads are still assembled, but where they disagree neither base can win on quality, so the
+                consensus gets an ambiguity code (e.g. R, Y) and is flagged as an F/R conflict.
+              </li>
+              <li>
+                If the primers were already removed, the direction comes from translation alone and may show as unknown; set it on
+                the Trim screen.
+              </li>
+            </ul>
+            <div className="mt-1 text-[12.5px]">
+              For the full checks, import a .zip of the original .ab1 traces: they carry the quality score of every base and the
+              chromatogram.
+            </div>
           </div>
         )}
         <div className="mt-3">

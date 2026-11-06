@@ -51,7 +51,7 @@ export default function ResultsScreen() {
         ),
       },
       { key: "len", header: "Final length", width: 92, align: "right", render: (r) => r.derived.finalLen, sort: (r) => r.derived.finalLen },
-      { key: "hq", header: "% HQ", width: 64, align: "right", render: (r) => r.derived.hqPct.toFixed(1), sort: (r) => r.derived.hqPct },
+      { key: "hq", header: "% HQ", width: 64, align: "right", render: (r) => (r.hasTrace ? r.derived.hqPct.toFixed(1) : "—"), sort: (r) => (r.hasTrace ? r.derived.hqPct : -1) },
       { key: "stops", header: "Stops", width: 56, align: "right", render: (r) => r.derived.stopCodons, sort: (r) => r.derived.stopCodons },
       {
         key: "top",

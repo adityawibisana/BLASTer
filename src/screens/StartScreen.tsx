@@ -8,6 +8,8 @@ import { useApp } from "../state";
 import { shortDate } from "../lib/format";
 import type { RecentProject } from "../types";
 
+const FASTA_EXTENSIONS = ["fasta", "fas", "fa", "fna", "ffn", "seq"];
+
 export default function StartScreen() {
   const { t } = useTranslation();
   const { setProject, go, select } = useApp();
@@ -26,9 +28,16 @@ export default function StartScreen() {
   };
 
   const newProject = async () => {
-    const zip = await open({ multiple: false, filters: [{ name: "Zip of .ab1 files", extensions: ["zip"] }] });
+    const zip = await open({
+      multiple: false,
+      filters: [
+        { name: "Zip of .ab1 files, or FASTA", extensions: ["zip", ...FASTA_EXTENSIONS] },
+        { name: "Zip of .ab1 files", extensions: ["zip"] },
+        { name: "FASTA", extensions: FASTA_EXTENSIONS },
+      ],
+    });
     if (!zip) return;
-    setBusy("Reading traces, finding primers and trimming…");
+    setBusy("Reading sequences, finding primers and trimming…");
     try {
       const p = await api.createProject(zip);
       toast.success(`${p.reads.length} samples imported`);
@@ -69,7 +78,7 @@ export default function StartScreen() {
             <FileArchive className="mt-0.5 text-accent" size={22} />
             <div>
               <div className="font-semibold">{t("start.newProject")}</div>
-              <div className="label mt-0.5">Up to 1000 .ab1 traces. Primers are found and reads trimmed automatically.</div>
+              <div className="label mt-0.5">Up to 1000 .ab1 traces or FASTA sequences. Primers are found and reads trimmed automatically.</div>
             </div>
           </button>
           <button className="card flex items-start gap-3 p-4 text-left hover:border-accent" onClick={openProject} disabled={!!busy}>
@@ -79,6 +88,12 @@ export default function StartScreen() {
               <div className="label mt-0.5">A saved .coiproj file. Opens offline, with all trims and results.</div>
             </div>
           </button>
+        </div>
+
+        <div className="label mt-2 px-1">
+          A .zip of .ab1 traces gives the most complete analysis: each base's quality score drives trimming and QC, and the
+          chromatogram lets you check doubtful bases. A FASTA file holds only the sequence, so every base is taken as correct:
+          primers are still removed, but there is no quality trimming, % HQ or chromatogram.
         </div>
 
         {busy && (

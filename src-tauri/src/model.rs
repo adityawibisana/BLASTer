@@ -226,6 +226,14 @@ pub struct Read {
     /// Set on the reverse read of a confirmed pair: the forward read's ID.
     #[serde(default)]
     pub paired_with: Option<String>,
+    /// False for a read imported from FASTA: there is no chromatogram, and every
+    /// base has quality [`crate::fasta::FASTA_QUAL`].
+    #[serde(default = "has_trace_default")]
+    pub has_trace: bool,
+}
+
+fn has_trace_default() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

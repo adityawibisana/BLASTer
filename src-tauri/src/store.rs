@@ -1,6 +1,7 @@
 //! `.coiproj` project files: a zip archive holding
 //! - `project.json`: settings, reads, per-read decisions, BLAST groups, compiled results
 //! - `ab1/<sample>.ab1`: the original trace files
+//! - `fasta/<sample>.fasta`: the original record of each sample imported from FASTA
 //! - `blast/<group>.raw.json`: NCBI's raw response per group (never rewritten)
 //! - `blast/<group>.parsed.json`: the parsed hit tables per group
 //!
@@ -22,6 +23,10 @@ pub const PROJECT_JSON: &str = "project.json";
 
 pub fn ab1_entry(sample_id: &str) -> String {
     format!("ab1/{sample_id}.ab1")
+}
+
+pub fn fasta_entry(sample_id: &str) -> String {
+    format!("fasta/{sample_id}.fasta")
 }
 
 pub fn raw_entry(group_id: &str) -> String {
@@ -91,9 +96,9 @@ pub fn write(source: Option<&Path>, dest: &Path, project: &Project, pending: &[(
     Ok(())
 }
 
+/// `files` are archive entries, as (entry name, bytes).
 pub fn create(path: &Path, project: Project, files: Vec<(String, Vec<u8>)>) -> Result<ProjectHandle> {
-    let entries: Vec<(String, Vec<u8>)> = files.into_iter().map(|(id, b)| (ab1_entry(&id), b)).collect();
-    write(None, path, &project, &entries)?;
+    write(None, path, &project, &files)?;
     Ok(ProjectHandle { path: path.to_path_buf(), project, results: HashMap::new(), pending: Vec::new() })
 }
 

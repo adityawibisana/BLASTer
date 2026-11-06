@@ -241,7 +241,7 @@ pub fn report_markup(h: &ProjectHandle, opts: &Options) -> Result<String> {
             cell(&r.id),
             cell(&crate::export::reads_text(r)),
             cell(&r.derived.final_len.to_string()),
-            cell(&num(r.derived.hq_pct, 1)),
+            cell(&if r.has_trace { num(r.derived.hq_pct, 1) } else { "-".into() }),
             italic(&top.map(species_of).unwrap_or_default()),
             cell(&top.map(|t| num(t.per_ident, 2)).unwrap_or_default()),
             cell(&top.map(|t| format!("{:.0}%", t.query_cover)).unwrap_or_default()),
@@ -266,7 +266,11 @@ pub fn report_markup(h: &ProjectHandle, opts: &Options) -> Result<String> {
                     None => r.file_name.clone(),
                 }),
                 ("Kept region", if r.pair.is_some() { "consensus of both reads".into() } else { format!("bases {trim} of {}", r.raw_length) }),
-                ("Length / % HQ", format!("{} bp, {:.1}% high quality", d.final_len, d.hq_pct)),
+                ("Length / % HQ", if r.has_trace {
+                    format!("{} bp, {:.1}% high quality", d.final_len, d.hq_pct)
+                } else {
+                    format!("{} bp, from FASTA (no quality values)", d.final_len)
+                }),
                 ("Primer sites", primer_text(r)),
                 ("Translation", if d.stop_codons == 0 { "no stop codons (table 5)".into() } else { format!("{} stop codon(s) in the best frame", d.stop_codons) }),
                 ("Status", status_text(&views::sample_flags(h, r))),

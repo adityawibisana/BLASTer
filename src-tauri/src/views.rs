@@ -35,6 +35,7 @@ pub struct ReadView<'a> {
     pub top_hit: Option<&'a HitRow>,
     pub pair: &'a Option<PairInfo>,
     pub paired_with: &'a Option<String>,
+    pub has_trace: bool,
 }
 
 #[derive(Serialize)]
@@ -171,6 +172,7 @@ pub fn project_view(h: &ProjectHandle, blast_running: bool) -> ProjectView<'_> {
             top_hit: h.result_for(r).and_then(|q| q.hits.first()),
             pair: &r.pair,
             paired_with: &r.paired_with,
+            has_trace: r.has_trace,
         })
         .collect();
     let mut summary: Vec<PrimerCount> = Vec::new();

@@ -47,6 +47,21 @@ A `.zip` archive of Sanger chromatogram files in ABIF format (`.ab1`), with **up
 
 Filenames do not need to say which read is forward or reverse. The app detects each read's direction from its sequence (see step 5).
 
+**FASTA input.** A FASTA file (`.fasta`, `.fas`, `.fa`, `.fna`, `.ffn`, `.seq`) can be imported instead of a zip, and a zip can hold FASTA files alongside `.ab1` files. Each record becomes one sample, named by the first word of its header; the rest of the header is kept as the sample name. FASTA has no quality values, so every base counts as high quality: primers are still found and removed, but there is no quality trim, no chromatogram, and % HQ shows as "—". Gaps (`-`, `.`) and digits are dropped, `U` is read as `T`, and a record with any other non-IUPAC character is listed as *skipped*.
+
+What FASTA cannot give, and why a zip of `.ab1` files is more complete:
+
+| | `.zip` of `.ab1` | FASTA |
+| --- | --- | --- |
+| Quality score per base | Yes | No: every base is taken as correct |
+| HQ trimming of noisy read ends | Yes | No: the whole sequence is kept, minus primers |
+| QC | % HQ, length, stop codons, ambiguous bases | Length, stop codons, ambiguous bases only |
+| Chromatogram, manual trim on the trace | Yes | No: sequence text only |
+| F/R disagreements in a pair | The higher-quality base wins | Neither base can win: IUPAC code, flagged as an F/R conflict |
+| Read direction | Primer sites and translation | The same, but if primers were already removed, translation alone, which can leave it unknown |
+
+The Start screen says this before import, and the Import screen shows a notice whenever a project holds FASTA samples.
+
 Example: `COI_20_sequences.zip` holds 20 COI (cytochrome c oxidase subunit I) barcode reads:
 
 ```
@@ -477,6 +492,7 @@ Problems are shown as clear messages on the affected sample or step. Nothing fai
 |-----------|-------------------|
 | Zip is corrupt, encrypted, or empty | Refuses the import and explains why |
 | A file in the zip is not `.ab1`, or an `.ab1` cannot be parsed | Lists it as *skipped* with the reason; the other files continue |
+| A FASTA record is empty or holds a character that is not a DNA base | Lists the record as *skipped*; the other records continue |
 | No internet connection | Steps 1–6 still work fully offline; BLAST waits and shows *offline*, with a *Retry* button |
 | NCBI rejects the request, or reports too many requests | Waits and retries with increasing delays, never faster than NCBI's limits; shows the NCBI message if it keeps failing |
 | NCBI search takes very long | Keeps polling once a minute and shows elapsed time; the user can cancel; the RID is saved so a closed app can continue later |

@@ -26,7 +26,7 @@ export default function TrimScreen() {
     setTrace(null);
     setDragRange(null);
     setPreview(null);
-    if (!read) return;
+    if (!read?.hasTrace) return;
     api.getTrace(read.id).then(setTrace).catch((e) => toast.error(errorText(e)));
   }, [read?.id]);
 
@@ -113,7 +113,7 @@ export default function TrimScreen() {
           <div>
             <h1 className="m-0 text-[19px] font-semibold">{read.id}</h1>
             <div className="text-muted">
-              {read.fileName} · raw {read.rawLength} bases, {read.rawHqPct.toFixed(1)}% HQ
+              {read.fileName} · raw {read.rawLength} bases, {read.hasTrace ? `${read.rawHqPct.toFixed(1)}% HQ` : "from FASTA"}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -145,7 +145,7 @@ export default function TrimScreen() {
             value={`${d.finalLen} bp`}
             tone={d.finalLen < project.settings.singleLenMin || d.finalLen > project.settings.singleLenMax ? "warn" : undefined}
           />
-          <Stat label="% HQ kept" value={`${d.hqPct.toFixed(1)}%`} tone={hqTone} />
+          {read.hasTrace && <Stat label="% HQ kept" value={`${d.hqPct.toFixed(1)}%`} tone={hqTone} />}
           <Stat label="Stop codons" value={d.stopCodons} tone={d.stopCodons > 0 ? "warn" : "ok"} />
           <Stat label="Direction" value={d.direction ?? "unknown"} tone={d.direction ? undefined : "warn"} />
           <div className="min-w-[200px]">
@@ -202,7 +202,14 @@ export default function TrimScreen() {
           </div>
         )}
 
-        {trace ? (
+        {!read.hasTrace ? (
+          <div className="card px-4 py-3">
+            <div className="mb-2 text-muted">
+              Imported from FASTA, so there is no chromatogram and no quality trimming. Primers are still removed.
+            </div>
+            <div className="break-all font-mono text-[12px] leading-5">{d.finalSeq}</div>
+          </div>
+        ) : trace ? (
           <Chromatogram
             trace={trace}
             range={range}

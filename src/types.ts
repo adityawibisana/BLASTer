@@ -158,6 +158,8 @@ export interface ReadView {
   topHit: HitRow | null;
   pair: PairInfo | null;
   pairedWith: string | null;
+  /** False for a read imported from FASTA: no chromatogram or quality values. */
+  hasTrace: boolean;
 }
 
 export interface GroupView {

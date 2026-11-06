@@ -206,7 +206,7 @@ pub async fn create_project(app: AppHandle, zip_path: String) -> CmdResult<Value
     let docs = state.documents_dir.join("COI Barcode BLAST");
     let zip = PathBuf::from(&zip_path);
     let handle = tokio::task::spawn_blocking(move || -> anyhow::Result<ProjectHandle> {
-        let imported = crate::importer::import_zip(&zip, &settings)?;
+        let imported = crate::importer::import(&zip, &settings)?;
         let name = zip.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "Batch".into());
         std::fs::create_dir_all(&docs)?;
         let path = store::unique_path(&docs, &name);
@@ -280,7 +280,13 @@ fn find_read<'a>(h: &'a mut ProjectHandle, id: &str) -> anyhow::Result<&'a mut R
 
 #[tauri::command]
 pub async fn get_trace(state: State<'_, AppState>, id: String) -> CmdResult<views::TraceView> {
-    let path = read_only(&state, |h| Ok(h.path.clone()))?;
+    let path = read_only(&state, |h| {
+        let read = h.project.reads.iter().find(|r| r.id == id).ok_or_else(|| anyhow::anyhow!("sample {id} not found"))?;
+        if !read.has_trace {
+            anyhow::bail!("{id} was imported from FASTA and has no chromatogram");
+        }
+        Ok(h.path.clone())
+    })?;
     let bytes = store::read_entry(&path, &store::ab1_entry(&id)).map_err(err)?;
     let t = crate::abif::parse(&bytes).map_err(err)?;
     Ok(views::TraceView { bases: String::from_utf8_lossy(&t.bases).into_owned(), quals: t.quals, peaks: t.peaks, traces: t.traces })

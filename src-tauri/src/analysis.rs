@@ -43,7 +43,16 @@ pub fn new_read(id: String, file_name: String, trace: &AbifTrace) -> Read {
         result: None,
         pair: None,
         paired_with: None,
+        has_trace: true,
     }
+}
+
+/// A read from a FASTA record. Every base gets quality [`crate::fasta::FASTA_QUAL`],
+/// so quality trimming keeps the whole read and only primers are removed.
+pub fn new_fasta_read(id: String, file_name: String, description: Option<String>, bases: &[u8]) -> Read {
+    let quals = vec![crate::fasta::FASTA_QUAL; bases.len()];
+    let trace = AbifTrace { sample_name: description, bases: bases.to_vec(), quals, peaks: Vec::new(), traces: Default::default() };
+    Read { has_trace: false, ..new_read(id, file_name, &trace) }
 }
 
 fn strand_hint(region: &[u8]) -> StrandHint {

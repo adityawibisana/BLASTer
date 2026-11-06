@@ -111,7 +111,9 @@ pub fn excel(h: &ProjectHandle, path: &Path) -> Result<()> {
             ws.write_string(row, 2, reads_text(r))?;
             ws.write_string(row, 3, primer_text(r))?;
             ws.write_number(row, 4, r.derived.final_len as f64)?;
-            ws.write_number_with_format(row, 5, r.derived.hq_pct, &f.pct)?;
+            if r.has_trace {
+                ws.write_number_with_format(row, 5, r.derived.hq_pct, &f.pct)?;
+            }
             ws.write_number(row, 6, r.derived.stop_codons as f64)?;
             if let Some(t) = top {
                 ws.write_string(row, 7, crate::compile::species_of(t))?;
@@ -231,14 +233,18 @@ pub fn excel(h: &ProjectHandle, path: &Path) -> Result<()> {
             ws.write_string(row, 0, &r.id)?;
             ws.write_string(row, 1, &r.file_name)?;
             ws.write_number(row, 2, r.raw_length as f64)?;
-            ws.write_number_with_format(row, 3, r.raw_hq_pct, &f.pct)?;
+            if r.has_trace {
+                ws.write_number_with_format(row, 3, r.raw_hq_pct, &f.pct)?;
+            }
             ws.write_number_with_format(row, 4, r.raw_gc_pct, &f.pct)?;
             if let Some(t) = d.trim {
                 ws.write_number(row, 5, (t.start + 1) as f64)?;
                 ws.write_number(row, 6, t.end as f64)?;
             }
             ws.write_number(row, 7, d.final_len as f64)?;
-            ws.write_number_with_format(row, 8, d.hq_pct, &f.pct)?;
+            if r.has_trace {
+                ws.write_number_with_format(row, 8, d.hq_pct, &f.pct)?;
+            }
             ws.write_string(row, 9, dir_text(d.direction))?;
             ws.write_string(row, 10, r.primer.set_name.as_deref().unwrap_or("none found"))?;
             ws.write_string(row, 11, site_text(&r.primer.start_site))?;
