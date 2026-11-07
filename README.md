@@ -21,6 +21,36 @@ Main reference: NCBI's open-source tools and APIs at <https://github.com/ncbi>.
 
 ---
 
+## Highlights
+
+Screenshots use the example batch `COI_20_sequences.zip` (20 mosquito COI traces).
+
+**Import.** Primers are detected automatically for each read, and every trace gets QC stats and a read direction. Reads that fail QC are flagged before anything is sent to NCBI.
+
+![Import screen: primer auto-detect summary and per-read QC table](screenshots/import.png)
+
+**Trim / QC.** The chromatogram shows the primer site, the trimmed-off ends and per-base quality. Drag the teal limits to change the kept region; % HQ, length and stop codons update live.
+
+![Trim / QC screen: chromatogram with trim limits and quality bars](screenshots/trim-qc.png)
+
+**BLAST.** Eligible samples go to NCBI's online BLAST in groups, within NCBI's usage limits. Progress is shown per group, and a later run can search only new or changed samples.
+
+![BLAST screen: search groups, progress and search settings](screenshots/blast.png)
+
+**Batch overview.** Every sample with its top BLAST hit, % identity, query cover and accession on one page.
+
+![Results batch overview: top hit species for every sample](screenshots/batch-overview.png)
+
+**Sample detail.** The same layout as the NCBI BLAST results page: the results summary, the ranked list of similar sequences with filters, and the pairwise alignment for the selected hit.
+
+![Sample detail: hit list and pairwise alignment](screenshots/sample-detail.png)
+
+**Compiled results.** One click decides the closest species for each sample, flags samples whose top hits disagree on species, and charts the species across the batch.
+
+![Compiled results: species chart and per-sample closest species](screenshots/compiled.png)
+
+---
+
 ## Tech stack
 
 A desktop app built with Tauri: a Rust backend and a React frontend, using the same setup as [r-shell](https://github.com/GOODBOY008/r-shell/blob/main/package.json).
