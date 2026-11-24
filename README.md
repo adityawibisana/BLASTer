@@ -702,3 +702,7 @@ Changes to docs, samples or screenshots alone do not trigger a release.
 | Forward/reverse pairs | Done. Tested on a realistic pair built from VN234-2's real trace (`tests/pairs_flow.rs`, `examples/make_pair_zip.rs`), and on **13 real forward/reverse pairs from BOLD** (`samples/sangeranalyseR/`, `tests/flexible_import.rs`): every read's direction is detected correctly, all 13 pairs are suggested and none crosses specimens, consensus 471–658 bp with no stop codon, and NCBI BLAST names the right species for 13 of 13 (*Allolobophora chlorotica* 99.8–100%, *Drosophila melanogaster* 99.8–100%). See `samples/README.md` |
 | PDF report | Done. Summary and full report for the example batch with real NCBI results; pages checked visually; export from the app works |
 | BOLD search | Dropped: no public identification API (step 8) |
+
+## Support this project
+
+If this app saves you time in the lab, you can support its development through [GitHub Sponsors](https://github.com/sponsors/adityawibisana).
