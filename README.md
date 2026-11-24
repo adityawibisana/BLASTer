@@ -611,7 +611,7 @@ These are assumptions written into this document that must be checked before or 
 | # | Assumption | How to check |
 |---|------------|--------------|
 | 1 | Geneious "% HQ" counts bases with Phred ≥ 40 | **Verified.** Raw length, % HQ and % GC match the Geneious screenshot for all 16 visible samples (test `raw_stats_match_geneious`) |
-| 2 | Geneious's default trim setting is an error-probability limit of 0.05 | Geneious documentation / trim dialog |
+| 2 | Geneious's default trim setting is an error-probability limit of 0.05 | **Verified.** The [Geneious manual](https://manual.geneious.com/en/latest/AssemblyMapping.html) (Trim Ends, modified-Mott algorithm): "it subtracts the base error probability from an error probability cutoff value (default 0.05) to form the base score". The app uses the same score and default (`mott_cutoff` in `model.rs`) |
 | 3 | The four built-in primer sequences are correct | Check against the original papers (Folmer 1994, Meyer 2003, Astrin & Stüben 2008, Hebert 2004) |
 | 4 | NCBI RIDs expire after 24 hours | **Checked: 24–36 hours.** The results page showed 24 hours; [NCBI support](https://support.nlm.nih.gov/knowledgebase/article/KA-05438/en-us) says 36 hours (the URL API documentation gives no time). The app uses no fixed limit: it treats a RID as expired when NCBI no longer knows it and offers to resubmit, so no change was needed |
 | 5 | A public BOLD v5 identification API exists and allows this use | **Checked: no.** The v4 engine is retired and the v5 APIs have no sequence search, so the BOLD option was dropped (step 8) |
