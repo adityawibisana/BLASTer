@@ -1,0 +1,176 @@
+name: Nightly release
+
+# Every night: if code changed since the last release, bump the minor version,
+# update CHANGELOG.md, run the tests, build the Windows installer and publish it
+# as the latest release.
+
+on:
+  schedule:
+    - cron: "0 17 * * *" # 00:00 UTC+7
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightly-release
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Keep line endings as committed
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Check for code changes since the last release
+        id: check
+        run: |
+          PREV=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          echo "prev=$PREV" >> "$GITHUB_OUTPUT"
+          if [ -z "$PREV" ]; then
+            echo "No previous release tag; releasing."
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --quiet "$PREV" HEAD -- src index.html package.json pnpm-lock.yaml tsconfig.json vite.config.ts \
+              src-tauri/src src-tauri/capabilities src-tauri/icons src-tauri/build.rs src-tauri/Cargo.toml \
+              src-tauri/Cargo.lock src-tauri/tauri.conf.json; then
+            echo "No code changes since $PREV; nothing to release."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Code changed since $PREV."
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Pick the next version
+        id: version
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          CUR=$(sed -n 's/^version = "\(.*\)"$/\1/p' src-tauri/Cargo.toml | head -n1)
+          if git rev-parse -q --verify "refs/tags/v$CUR" >/dev/null; then
+            IFS=. read -r MAJOR MINOR _ <<< "$CUR"
+            NEXT="$MAJOR.$((MINOR + 1)).0"
+          else
+            NEXT="$CUR" # Cargo.toml already holds an unreleased version
+          fi
+          if git rev-parse -q --verify "refs/tags/v$NEXT" >/dev/null; then
+            echo "::error::Tag v$NEXT already exists"
+            exit 1
+          fi
+          # The version lives in three files; keep them equal.
+          sed -i "0,/^version = \".*\"$/s//version = \"$NEXT\"/" src-tauri/Cargo.toml
+          sed -i "0,/\"version\": \".*\"/s//\"version\": \"$NEXT\"/" src-tauri/tauri.conf.json
+          sed -i "0,/\"version\": \".*\"/s//\"version\": \"$NEXT\"/" package.json
+          echo "Releasing v$NEXT (Cargo.toml had $CUR)"
+          echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+
+      - name: Write the changelog
+        if: steps.check.outputs.changed == 'true'
+        env:
+          PREV: ${{ steps.check.outputs.prev }}
+          NEXT: ${{ steps.version.outputs.next }}
+        run: |
+          RANGE=${PREV:+$PREV..}HEAD
+          git log --no-merges --format='- %s (%h)' "$RANGE" > "$RUNNER_TEMP/changes.md"
+          {
+            echo "# Changelog"
+            echo
+            echo "## v$NEXT - $(date -u +%Y-%m-%d)"
+            echo
+            cat "$RUNNER_TEMP/changes.md"
+            echo
+            if [ -f CHANGELOG.md ]; then
+              sed '1{/^# Changelog$/d}' CHANGELOG.md | sed '/./,$!d'
+            fi
+          } > "$RUNNER_TEMP/CHANGELOG.md"
+          mv "$RUNNER_TEMP/CHANGELOG.md" CHANGELOG.md
+          cat CHANGELOG.md
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.changed == 'true'
+        with:
+          node-version: 24
+
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.check.outputs.changed == 'true'
+
+      - uses: Swatinem/rust-cache@v2
+        if: steps.check.outputs.changed == 'true'
+        with:
+          workspaces: src-tauri
+
+      - name: Install frontend dependencies
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          corepack enable
+          corepack pnpm install --frozen-lockfile
+
+      - name: Test
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          corepack pnpm test
+          cd src-tauri && cargo test --release
+
+      - name: Build
+        if: steps.check.outputs.changed == 'true'
+        run: corepack pnpm tauri build
+
+      - name: Commit, tag and push
+        if: steps.check.outputs.changed == 'true'
+        env:
+          NEXT: ${{ steps.version.outputs.next }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json CHANGELOG.md
+          git commit -m "Release v$NEXT"
+          git tag -a "v$NEXT" -m "v$NEXT"
+          git push --atomic origin HEAD:main "refs/tags/v$NEXT"
+
+      - name: Publish the release
+        if: steps.check.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEXT: ${{ steps.version.outputs.next }}
+        run: |
+          SETUP="$RUNNER_TEMP/COI-Barcode-BLAST_${NEXT}_x64-setup.exe"
+          PORTABLE="$RUNNER_TEMP/COI-Barcode-BLAST_${NEXT}_x64-portable.exe"
+          cp "src-tauri/target/release/bundle/nsis/COI Barcode BLAST_${NEXT}_x64-setup.exe" "$SETUP"
+          cp src-tauri/target/release/coi-barcode-blast.exe "$PORTABLE"
+          SHA_SETUP=$(sha256sum "$SETUP" | cut -d' ' -f1)
+          SHA_PORTABLE=$(sha256sum "$PORTABLE" | cut -d' ' -f1)
+          {
+            echo "## Changes"
+            echo
+            cat "$RUNNER_TEMP/changes.md"
+            echo
+            echo "## Download"
+            echo
+            echo "- **COI-Barcode-BLAST_${NEXT}_x64-setup.exe**: the installer (Windows 10/11, x64). Installs for the current user, no admin rights needed. On Windows 10 it downloads the Microsoft Edge WebView2 runtime if it is missing."
+            echo "- **COI-Barcode-BLAST_${NEXT}_x64-portable.exe**: the app as a single file, no install. Needs WebView2, which comes with Windows 11 and current Windows 10."
+            echo
+            echo "BLAST searches need an internet connection to NCBI. See the [README](https://github.com/${GITHUB_REPOSITORY}#readme) for usage and the example data in \`samples/\`."
+            echo
+            echo "SHA-256:"
+            echo '```'
+            echo "$SHA_SETUP  COI-Barcode-BLAST_${NEXT}_x64-setup.exe"
+            echo "$SHA_PORTABLE  COI-Barcode-BLAST_${NEXT}_x64-portable.exe"
+            echo '```'
+          } > "$RUNNER_TEMP/notes.md"
+          gh release create "v$NEXT" "$SETUP" "$PORTABLE" \
+            --title "v$NEXT" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            --latest \
+            --verify-tag
