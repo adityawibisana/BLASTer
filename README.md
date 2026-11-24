@@ -330,7 +330,7 @@ NCBI usage rules that the app must follow:
 - Send `tool` and `email` parameters with each request. The email is entered once in Settings.
 - Run large batches on weekends or between 9 pm and 5 am US Eastern time.
 
-Results expire on NCBI **24 hours** after submission. The results page in the screenshot shows a search submitted around 19:12 that "expires on 11-07 19:12". To handle this:
+Results expire on NCBI about **24–36 hours** after submission. The results page in the screenshot shows a search submitted around 19:12 that "expires on 11-07 19:12" (24 hours), while [NCBI support](https://support.nlm.nih.gov/knowledgebase/article/KA-05438/en-us) says "RIDs allow temporary 36-hours access to search results". The app does not rely on a fixed time: a RID counts as expired only when NCBI reports it as unknown. To handle this:
 
 - The app saves the raw response in the project as soon as it is downloaded, so results can be reopened at any time without re-running the search.
 - If a RID expires before its results were downloaded (e.g. the app was closed), the app offers to resubmit the search.
@@ -613,7 +613,7 @@ These are assumptions written into this document that must be checked before or 
 | 1 | Geneious "% HQ" counts bases with Phred ≥ 40 | **Verified.** Raw length, % HQ and % GC match the Geneious screenshot for all 16 visible samples (test `raw_stats_match_geneious`) |
 | 2 | Geneious's default trim setting is an error-probability limit of 0.05 | Geneious documentation / trim dialog |
 | 3 | The four built-in primer sequences are correct | Check against the original papers (Folmer 1994, Meyer 2003, Astrin & Stüben 2008, Hebert 2004) |
-| 4 | NCBI RIDs expire after 24 hours | Observed in the reference screenshot; confirm in NCBI's URL API documentation |
+| 4 | NCBI RIDs expire after 24 hours | **Checked: 24–36 hours.** The results page showed 24 hours; [NCBI support](https://support.nlm.nih.gov/knowledgebase/article/KA-05438/en-us) says 36 hours (the URL API documentation gives no time). The app uses no fixed limit: it treats a RID as expired when NCBI no longer knows it and offers to resubmit, so no change was needed |
 | 5 | A public BOLD v5 identification API exists and allows this use | **Checked: no.** The v4 engine is retired and the v5 APIs have no sequence search, so the BOLD option was dropped (step 8) |
 | 6 | Which primers the lab actually used | Ask the lab. Until then, auto-detect decides |
 
