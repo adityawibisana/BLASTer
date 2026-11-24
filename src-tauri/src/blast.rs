@@ -15,6 +15,17 @@ pub const TOOL: &str = "coi-barcode-blast";
 pub const SUBMIT_INTERVAL: Duration = Duration::from_secs(10);
 /// NCBI: poll a RID no more than once a minute.
 pub const POLL_INTERVAL: Duration = Duration::from_secs(60);
+/// A search NCBI still reports as waiting after this long is given up, so one stuck
+/// search does not block the rest of the batch. Its group can be searched again.
+pub const MAX_WAIT: Duration = Duration::from_secs(2 * 60 * 60);
+
+/// Whether a search submitted at `submitted_at` (RFC 3339) has waited longer than
+/// [`MAX_WAIT`] by `now`. An unknown or unreadable time never counts as too long.
+pub fn waited_too_long(submitted_at: Option<&str>, now: chrono::DateTime<chrono::FixedOffset>) -> bool {
+    submitted_at
+        .and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok())
+        .is_some_and(|t| (now - t).to_std().is_ok_and(|d| d > MAX_WAIT))
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SearchStatus {
@@ -405,6 +416,17 @@ pub fn hit_detail(json: &str, query_index: usize, rank: usize) -> Result<HitDeta
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn gives_up_after_max_wait() {
+        let at = |s: &str| chrono::DateTime::parse_from_rfc3339(s).unwrap();
+        let sub = Some("2026-11-24T16:18:22+07:00");
+        assert!(!super::waited_too_long(sub, at("2026-11-24T18:18:00+07:00")));
+        assert!(super::waited_too_long(sub, at("2026-11-24T18:19:00+07:00")));
+        assert!(super::waited_too_long(sub, at("2026-11-24T11:19:00+00:00")));
+        assert!(!super::waited_too_long(None, at("2026-11-25T00:00:00+07:00")));
+        assert!(!super::waited_too_long(Some("not a time"), at("2026-11-25T00:00:00+07:00")));
+    }
+
     use super::*;
 
     #[test]

@@ -746,7 +746,7 @@ async fn run_queue(app: &AppHandle) {
         let gid = group.id.clone();
 
         // Submit (or resume a group that already has a RID).
-        let (rid, first_wait) = match (&group.status, &group.rid) {
+        let (rid, first_wait, submitted_at) = match (&group.status, &group.rid) {
             (GroupStatus::Submitted, Some(rid)) => {
                 let since = group
                     .submitted_at
@@ -754,7 +754,7 @@ async fn run_queue(app: &AppHandle) {
                     .and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok())
                     .map(|t| (chrono::Local::now().fixed_offset() - t).num_seconds().max(0) as u64)
                     .unwrap_or(0);
-                (rid.clone(), Duration::from_secs(60u64.saturating_sub(since).max(5)))
+                (rid.clone(), Duration::from_secs(60u64.saturating_sub(since).max(5)), group.submitted_at.clone())
             }
             _ => {
                 if let Some(t) = last_submit {
@@ -769,15 +769,17 @@ async fn run_queue(app: &AppHandle) {
                 match put {
                     Ok(Some((rid, rtoe))) => {
                         let r = rid.clone();
+                        let at = chrono::Local::now().to_rfc3339();
+                        let at2 = at.clone();
                         update_group(app, &gid, |g| {
                             g.status = GroupStatus::Submitted;
                             g.rid = Some(r);
                             g.rtoe_secs = Some(rtoe);
-                            g.submitted_at = Some(chrono::Local::now().to_rfc3339());
+                            g.submitted_at = Some(at2);
                             g.attempts += 1;
                             g.error = None;
                         });
-                        (rid, blast::POLL_INTERVAL.max(Duration::from_secs(rtoe)))
+                        (rid, blast::POLL_INTERVAL.max(Duration::from_secs(rtoe)), Some(at))
                     }
                     Ok(None) => continue,
                     Err(msg) => {
@@ -798,6 +800,10 @@ async fn run_queue(app: &AppHandle) {
         let outcome = loop {
             match with_retries(app, &gid, || client.status(&rid)).await {
                 Ok(Some(SearchStatus::Waiting)) => {
+                    if blast::waited_too_long(submitted_at.as_deref(), chrono::Local::now().fixed_offset()) {
+                        let hours = blast::MAX_WAIT.as_secs() / 3600;
+                        break Some(Err((GroupStatus::Failed, format!("NCBI did not finish this search within {hours} hours; search the group again"))));
+                    }
                     if !sleep_unless_cancelled(app, blast::POLL_INTERVAL).await {
                         break None;
                     }

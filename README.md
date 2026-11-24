@@ -553,7 +553,7 @@ Problems are shown as clear messages on the affected sample or step. Nothing fai
 | A FASTA record is empty or holds a character that is not a DNA base | Lists the record as *skipped*; the other records continue |
 | No internet connection | Steps 1–6 still work fully offline; BLAST waits and shows *offline*, with a *Retry* button |
 | NCBI rejects the request, or reports too many requests | Waits and retries with increasing delays, never faster than NCBI's limits; shows the NCBI message if it keeps failing |
-| NCBI search takes very long | Keeps polling once a minute and shows elapsed time; the user can cancel; the RID is saved so a closed app can continue later |
+| NCBI search takes very long | Keeps polling once a minute and shows elapsed time; the user can cancel; the RID is saved so a closed app can continue later. A search NCBI still reports as waiting after **2 hours** is given up: its group is marked failed, the rest of the batch continues, and the group can be searched again |
 | RID expired before results were fetched | Offers to resubmit |
 | NCBI returns no hits for a sample | Shows *No significant similarity found* (as NCBI does) and flags the sample |
 | No email set in Settings | Asks for it before the first BLAST, because NCBI requires it |
