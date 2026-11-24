@@ -9,7 +9,7 @@ use coi_blast_lib::primers::Dir;
 
 #[test]
 fn final_sequences_round_trip() {
-    let zip = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../COI_20_sequences.zip");
+    let zip = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../samples/COI_20_sequences.zip");
     let settings = Settings::default();
     let batch = import_zip(&zip, &settings).unwrap();
     let passed: Vec<_> = batch.reads.iter().filter(|r| !r.derived.qc_failed).collect();

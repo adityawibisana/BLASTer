@@ -13,7 +13,7 @@ use coi_blast_lib::seq::reverse_complement;
 use coi_blast_lib::{analysis, fasta, importer, pairs};
 
 fn sample_read(id: &str) -> Read {
-    let zip = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../COI_20_sequences.zip");
+    let zip = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../samples/COI_20_sequences.zip");
     importer::import_zip(&zip, &Settings::default()).unwrap().reads.into_iter().find(|r| r.id == id).unwrap()
 }
 

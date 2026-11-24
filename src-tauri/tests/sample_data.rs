@@ -8,7 +8,7 @@ use coi_blast_lib::model::{Flag, Settings};
 use coi_blast_lib::primers::Dir;
 
 fn sample_zip() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join("COI_20_sequences.zip")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../samples/COI_20_sequences.zip")
 }
 
 /// (sample, raw length, % HQ, % GC) as shown by Geneious.

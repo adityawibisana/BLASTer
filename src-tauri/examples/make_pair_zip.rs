@@ -2,7 +2,7 @@
 //! S1_F.ab1 is VN234-2 unchanged; S1_R.ab1 is a synthetic reverse read of the same
 //! template (read from the HCO2198 side, ending in revcomp(LCO1490)), written as a
 //! valid ABIF file with drawn trace peaks. Three real single reads are added.
-//! Usage: cargo run --example make_pair_zip -- <COI_20_sequences.zip> <out.zip>
+//! Usage: cargo run --example make_pair_zip -- <samples/COI_20_sequences.zip> <out.zip>
 
 use std::io::{Read as _, Write as _};
 

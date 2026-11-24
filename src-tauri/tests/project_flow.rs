@@ -21,7 +21,7 @@ fn temp_dir(name: &str) -> PathBuf {
 
 fn new_project(dir: &std::path::Path) -> store::ProjectHandle {
     let settings = Settings::default();
-    let imported = importer::import_zip(&root().join("../COI_20_sequences.zip"), &settings).unwrap();
+    let imported = importer::import_zip(&root().join("../samples/COI_20_sequences.zip"), &settings).unwrap();
     let project = Project {
         format: PROJECT_FORMAT,
         name: "COI_20_sequences".into(),
