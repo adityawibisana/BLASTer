@@ -14,8 +14,8 @@ export const TRACK: { stage: Stage; label: string }[] = [
 
 /** NCBI usually finishes a group of 20 COI reads in 1–10 minutes; past this it counts as slow. */
 export const SLOW_AFTER_MS = 15 * 60_000;
-/** NCBI allows one status check per search per minute. */
-export const POLL_MS = 60_000;
+/** How often each search is checked with NCBI. */
+export const POLL_MS = 30_000;
 
 export function stage(g: GroupView): Stage {
   switch (g.status) {

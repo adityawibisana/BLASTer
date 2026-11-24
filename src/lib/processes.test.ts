@@ -55,10 +55,10 @@ describe("processes", () => {
     expect(deadline(g({ status: "ready" }), 120)).toBeNull();
   });
 
-  it("next check is a minute after the last one, or after NCBI's estimate", () => {
-    expect(nextCheck(g({}))).toBe(T0 + 60_000);
+  it("next check is 30 seconds after the last one, or after NCBI's estimate", () => {
+    expect(nextCheck(g({}))).toBe(T0 + 30_000);
     expect(nextCheck(g({ rtoeSecs: 90 }))).toBe(T0 + 90_000);
-    expect(nextCheck(g({ lastCheckedAt: iso(T0 + 300_000) }))).toBe(T0 + 360_000);
+    expect(nextCheck(g({ lastCheckedAt: iso(T0 + 300_000) }))).toBe(T0 + 330_000);
     expect(countdown(42_000)).toBe("0:42");
     expect(countdown(-1)).toBe("now");
   });

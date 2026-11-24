@@ -946,7 +946,7 @@ async fn run_queue(app: &AppHandle) {
             }
         };
 
-        // Poll no more than once a minute.
+        // Wait before the first status check.
         if !sleep_while_current(app, first_wait, &gid, &rid).await {
             continue;
         }

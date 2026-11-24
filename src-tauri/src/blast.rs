@@ -13,8 +13,8 @@ pub const BLAST_URL: &str = "https://blast.ncbi.nlm.nih.gov/Blast.cgi";
 pub const TOOL: &str = "coi-barcode-blast";
 /// NCBI: no more than one submission every 10 seconds.
 pub const SUBMIT_INTERVAL: Duration = Duration::from_secs(10);
-/// NCBI: poll a RID no more than once a minute.
-pub const POLL_INTERVAL: Duration = Duration::from_secs(60);
+/// How often to check whether NCBI has finished a RID.
+pub const POLL_INTERVAL: Duration = Duration::from_secs(30);
 /// A search NCBI still reports as waiting after `give_up_minutes` (a setting, 120 by
 /// default) is given up, so one stuck search does not block the rest of the batch.
 /// Its group can be sent again. The setting is kept within these limits.
