@@ -16,6 +16,7 @@ tauri-build = { version = "2.6.3", features = [] }
 anyhow = "1.0.104"
 chrono = { version = "0.4.45", features = ["serde"] }
 reqwest = { version = "0.13.5", default-features = false, features = ["form", "gzip", "http2", "json", "native-tls", "query", "system-proxy"] }
+roxmltree = "0.21.2"
 rust_xlsxwriter = "0.102.0"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"

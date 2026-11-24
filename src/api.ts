@@ -2,7 +2,9 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   Derived,
   Dir,
+  BlastSettings,
   HitDetail,
+  ImportSummary,
   PrimerSet,
   ProjectView,
   RecentProject,
@@ -53,6 +55,9 @@ export const api = {
     invoke<{ queuedSamples: number; groups: number }>("start_blast", { onlyChanged }),
   cancelBlast: () => invoke<void>("cancel_blast"),
   resubmitGroup: (id: string) => invoke<void>("resubmit_group", { id }),
+  importBlastResults: (path: string) => invoke<ImportSummary>("import_blast_results", { path }),
+  openOnWebsite: (id: string) => invoke<void>("open_on_website", { id }),
+  checkLocalBlast: (settings: BlastSettings) => invoke<string>("check_local_blast", { settings }),
   quitApp: () => invoke<void>("quit_app"),
 };
 

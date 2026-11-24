@@ -1,13 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Play, RefreshCw, Square } from "lucide-react";
+import { FileUp, Loader2, Play, RefreshCw, Square } from "lucide-react";
 import { toast } from "sonner";
 import { api, errorText } from "../api";
 import { useApp } from "../state";
 import { Badge, Field, Modal, PageHeader, Stat } from "../components/ui";
 import { duration, isNcbiOffPeak, shortDate } from "../lib/format";
 import { isSlow } from "../lib/processes";
-import type { BlastSettings, GroupStatus, GroupView } from "../types";
+import { pickAndImportResults } from "../lib/blastImport";
+import type { BlastLocation, BlastSettings, GroupStatus, GroupView } from "../types";
+
+const WHERE: Record<BlastLocation, { label: string; subtitle: string }> = {
+  ncbi: {
+    label: "NCBI online (the app sends the searches)",
+    subtitle: "Searches go to NCBI's online BLAST service, in groups, within NCBI's usage limits.",
+  },
+  website: {
+    label: "NCBI website (you send them, then import)",
+    subtitle:
+      "The app splits the samples into groups. Under Processes, open each group on the NCBI BLAST website, then import the downloaded results.",
+  },
+  local: {
+    label: "This computer (BLAST+)",
+    subtitle: "Searches run with BLAST+ on this computer against your local database; NCBI's limits do not apply.",
+  },
+};
 
 const STATUS: Record<GroupStatus, { label: string; tone: "ok" | "warn" | "bad" | "info" }> = {
   pending: { label: "Waiting to submit", tone: "info" },
@@ -53,6 +70,7 @@ export default function BlastScreen() {
   if (!project) return null;
 
   const s = project.settings;
+  const where = s.blast.location ?? "ncbi";
   const eligible = project.reads.filter((r) => r.derived.eligible);
   const needSearch = eligible.filter((r) => !r.searched || r.outdated).length;
   const searched = eligible.filter((r) => r.searched && !r.outdated).length;
@@ -65,6 +83,15 @@ export default function BlastScreen() {
   const start = async (onlyChanged: boolean) => {
     try {
       const r = await api.startBlast(onlyChanged);
+      if (where === "website") {
+        toast.success(
+          r.queuedSamples
+            ? `${r.queuedSamples} samples split into ${r.groups} group(s). Open each on the NCBI website from Processes.`
+            : "Nothing new to search.",
+        );
+        go("processes");
+        return;
+      }
       toast.success(r.queuedSamples ? `${r.queuedSamples} samples queued in ${r.groups} group(s)` : "Nothing new to search; resuming open searches");
     } catch (e) {
       if (errorText(e) === "NO_EMAIL") {
@@ -97,7 +124,7 @@ export default function BlastScreen() {
     <div className="flex h-full flex-col overflow-auto">
       <PageHeader
         title="BLAST"
-        subtitle="Searches go to NCBI's online BLAST service, in groups, within NCBI's usage limits."
+        subtitle={WHERE[where].subtitle}
         actions={
           project.blastRunning ? (
             <button className="btn" onClick={() => api.cancelBlast()}>
@@ -105,6 +132,9 @@ export default function BlastScreen() {
             </button>
           ) : (
             <>
+              <button className="btn" title="Results downloaded from the NCBI BLAST website, or written by BLAST+" onClick={() => pickAndImportResults()}>
+                <FileUp size={14} /> Import results file
+              </button>
               <button className="btn" disabled={needSearch === 0} onClick={() => start(true)}>
                 <RefreshCw size={14} /> {t("blast.searchChanged")} ({needSearch})
               </button>
@@ -123,7 +153,8 @@ export default function BlastScreen() {
             <Stat label="With current results" value={searched} tone={searched === eligible.length && searched > 0 ? "ok" : undefined} />
             <Stat label="New or changed" value={needSearch} tone={needSearch ? "warn" : undefined} />
             <Stat label="Groups done" value={`${ready} / ${groups.length}`} />
-            {est && (
+            {/* No estimate when the user sends the searches on the NCBI website. */}
+            {est && where !== "website" && (
               <Stat
                 label={est.guessed ? "Estimated finish (rough)" : "Estimated finish"}
                 value={
@@ -147,7 +178,7 @@ export default function BlastScreen() {
               </button>
             </div>
           )}
-          {!offPeak && needSearch > 100 && (
+          {where === "ncbi" && !offPeak && needSearch > 100 && (
             <div className="card border-warn bg-warn-soft px-4 py-2.5 text-warn">
               This batch has more than 100 samples to search. NCBI asks for large batches to run on weekends or between 9 pm
               and 5 am US Eastern time (9 am–5 pm WIB).
@@ -175,7 +206,8 @@ export default function BlastScreen() {
             {groups.length === 0 && <div className="p-5 text-muted">No searches yet.</div>}
             <div className="max-h-[420px] overflow-auto">
               {[...groups].reverse().map((g) => {
-                const st = STATUS[g.status];
+                const st =
+                  g.status === "pending" && where === "website" ? { label: "To run on NCBI website", tone: "info" as const } : STATUS[g.status];
                 const elapsed = g.submittedAt && g.status === "submitted" ? duration(now - Date.parse(g.submittedAt)) : null;
                 return (
                   <div key={g.id} className="grid grid-cols-[70px_80px_150px_130px_minmax(0,1fr)] items-center border-b border-line/70 px-3 py-2">
@@ -205,15 +237,39 @@ export default function BlastScreen() {
 
         <div className="card flex flex-col gap-3 self-start p-4">
           <div className="font-semibold">Search settings</div>
+          <Field label="Where to search" hint={where === "local" ? undefined : "NCBI limits BLAST per internet connection; on a busy or shared network, the website or this computer can be faster."}>
+            <select
+              className="input"
+              value={where}
+              disabled={project.blastRunning}
+              onChange={(e) => updateBlast({ location: e.target.value as BlastLocation })}
+            >
+              {(Object.keys(WHERE) as BlastLocation[]).map((k) => (
+                <option key={k} value={k}>
+                  {WHERE[k].label}
+                </option>
+              ))}
+            </select>
+          </Field>
           <div className="grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5">
             <span className="label">Program</span>
             <span>blastn</span>
             <span className="label">Database</span>
-            <span>core_nt (Core nucleotide)</span>
+            {where === "local" ? (
+              <span className="truncate" title={s.blast.localDb}>
+                {s.blast.localDb ? s.blast.localDb.split(/[\\/]/).pop() : <button className="text-left text-warn underline" onClick={() => go("settings")}>choose in Settings</button>}
+              </span>
+            ) : (
+              <span>core_nt (Core nucleotide)</span>
+            )}
             <span className="label">Max hits</span>
-            <span>{s.blast.maxHits} per sample</span>
-            <span className="label">NCBI email</span>
-            <span className="truncate">{s.email || <span className="text-warn">not set</span>}</span>
+            <span title="Fewer hits make each search cheaper for NCBI and faster to download">{s.blast.maxHits} per sample</span>
+            {where === "ncbi" && (
+              <>
+                <span className="label">NCBI email</span>
+                <span className="truncate">{s.email || <span className="text-warn">not set</span>}</span>
+              </>
+            )}
           </div>
           <Field label="Optimize for">
             <select className="input" value={s.blast.megablast ? "megablast" : "blastn"} onChange={(e) => updateBlast({ megablast: e.target.value === "megablast" })} disabled={project.blastRunning}>
@@ -242,6 +298,7 @@ export default function BlastScreen() {
             />
             Exclude uncultured/environmental samples
           </label>
+          {where === "local" && <div className="label">The organism and exclusion filters apply to NCBI searches only.</div>}
           <Field label="Samples per submission" hint="1000 samples at 20 per group = 50 submissions, one after another">
             <input
               className="input"

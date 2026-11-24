@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { open } from "@tauri-apps/plugin-dialog";
+import { FolderOpen, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, errorText } from "../api";
 import i18n from "../i18n";
 import { useApp } from "../state";
 import { Field, PageHeader } from "../components/ui";
-import type { PrimerMode, PrimerSet, Settings } from "../types";
+import type { BlastLocation, PrimerMode, PrimerSet, Settings } from "../types";
 
 function Num({ value, onChange, step = 1, min, max }: { value: number; onChange: (v: number) => void; step?: number; min?: number; max?: number }) {
   return (
@@ -28,6 +29,7 @@ export default function SettingsScreen() {
   const [draft, setDraft] = useState<Settings | null>(null);
   const [library, setLibrary] = useState<PrimerSet[]>([]);
   const [saving, setSaving] = useState(false);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     api.primerLibrary().then(setLibrary).catch(() => {});
@@ -75,6 +77,28 @@ export default function SettingsScreen() {
       toast.error(errorText(e));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const setBlast = (patch: Partial<Settings["blast"]>) => set("blast", { ...draft.blast, ...patch });
+  const browse = async (key: "blastnPath" | "localDb") => {
+    const path = await open({
+      multiple: false,
+      filters:
+        key === "blastnPath"
+          ? [{ name: "blastn", extensions: ["exe", "*"] }]
+          : [{ name: "BLAST database", extensions: ["nal", "nsq", "nin", "nhr", "ndb", "njs"] }],
+    });
+    if (typeof path === "string") setBlast({ [key]: path });
+  };
+  const testLocal = async () => {
+    setChecking(true);
+    try {
+      toast.success(`BLAST+ is ready: ${await api.checkLocalBlast(draft.blast)}`, { duration: 8000 });
+    } catch (e) {
+      toast.error(errorText(e), { duration: 10_000 });
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -236,6 +260,41 @@ export default function SettingsScreen() {
 
         <section className="card flex flex-col gap-3 p-4">
           <h2 className="m-0 text-[14px] font-semibold">BLAST</h2>
+          <Field
+            label="Where to search"
+            hint="NCBI limits BLAST per internet connection, so searches slow down for large batches or on a shared network. Then run them on the NCBI website and import the results, or on this computer."
+          >
+            <select className="input" value={draft.blast.location ?? "ncbi"} onChange={(e) => setBlast({ location: e.target.value as BlastLocation })}>
+              <option value="ncbi">NCBI online (the app sends the searches)</option>
+              <option value="website">NCBI website (you send them, then import)</option>
+              <option value="local">This computer (BLAST+)</option>
+            </select>
+          </Field>
+          {draft.blast.location === "local" && (
+            <>
+              <Field label="BLAST+ blastn program" hint="Empty: blastn on the PATH. BLAST+ is free from NCBI (ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST).">
+                <div className="flex gap-2">
+                  <input className="input min-w-0 flex-1" placeholder="blastn" value={draft.blast.blastnPath ?? ""} onChange={(e) => setBlast({ blastnPath: e.target.value })} />
+                  <button className="btn btn-sm" onClick={() => browse("blastnPath")} title="Choose blastn">
+                    <FolderOpen size={13} />
+                  </button>
+                </div>
+              </Field>
+              <Field label="Local database" hint="A nucleotide BLAST database, e.g. made with: makeblastdb -in coi_refs.fasta -dbtype nucl -out coi_refs. Pick any of its files.">
+                <div className="flex gap-2">
+                  <input className="input min-w-0 flex-1" placeholder="C:\BLAST\db\coi_refs" value={draft.blast.localDb ?? ""} onChange={(e) => setBlast({ localDb: e.target.value })} />
+                  <button className="btn btn-sm" onClick={() => browse("localDb")} title="Choose the database">
+                    <FolderOpen size={13} />
+                  </button>
+                </div>
+              </Field>
+              <div>
+                <button className="btn btn-sm" onClick={testLocal} disabled={checking}>
+                  {checking ? "Checking…" : "Test BLAST+"}
+                </button>
+              </div>
+            </>
+          )}
           <Field label="Samples per submission" hint="Searches are sent one group after another">
             <Num value={draft.blast.groupSize} onChange={(v) => set("blast", { ...draft.blast, groupSize: v })} min={1} max={100} />
           </Field>
@@ -245,7 +304,7 @@ export default function SettingsScreen() {
           >
             <Num value={draft.blast.giveUpHours} onChange={(v) => set("blast", { ...draft.blast, giveUpHours: v })} step={0.5} min={0.5} max={24} />
           </Field>
-          <Field label="Max hits per sample">
+          <Field label="Max hits per sample" hint="10 is usually enough to name a species. Fewer hits make each NCBI search lighter and faster to download.">
             <Num value={draft.blast.maxHits} onChange={(v) => set("blast", { ...draft.blast, maxHits: v })} min={10} max={500} />
           </Field>
           <Field label="Low identity flag below (%)">

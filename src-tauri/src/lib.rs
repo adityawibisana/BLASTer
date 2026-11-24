@@ -7,10 +7,12 @@ pub mod compile;
 pub mod export;
 pub mod fasta;
 pub mod importer;
+pub mod local_blast;
 pub mod model;
 pub mod pairs;
 pub mod pdf;
 pub mod primers;
+pub mod results_file;
 pub mod seq;
 pub mod store;
 pub mod trim;
@@ -88,6 +90,9 @@ pub fn run() {
             app::start_blast,
             app::cancel_blast,
             app::resubmit_group,
+            app::import_blast_results,
+            app::open_on_website,
+            app::check_local_blast,
             app::quit_app,
         ])
         .run(tauri::generate_context!())
