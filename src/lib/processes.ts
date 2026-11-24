@@ -46,16 +46,16 @@ export function isSlow(g: GroupView, now: number): boolean {
   return g.status === "submitted" && g.source !== "local" && (runTime(g, now) ?? 0) > SLOW_AFTER_MS;
 }
 
-/** Same limits as the app's backend (0.5–24 h, 2 h when unset). */
-export function giveUpMs(hours: number | undefined): number {
-  const h = hours != null && Number.isFinite(hours) ? Math.min(24, Math.max(0.5, hours)) : 2;
-  return h * 3_600_000;
+/** Same limits as the app's backend (10 min – 24 h, 120 min when unset). */
+export function giveUpMs(minutes: number | undefined): number {
+  const m = minutes != null && Number.isFinite(minutes) ? Math.min(1440, Math.max(10, Math.round(minutes))) : 120;
+  return m * 60_000;
 }
 
 /** When the app gives up on a waiting search. */
-export function deadline(g: GroupView, giveUpHours: number | undefined): number | null {
+export function deadline(g: GroupView, giveUpMinutes: number | undefined): number | null {
   if (g.status !== "submitted" || !g.submittedAt || g.source === "local") return null;
-  return Date.parse(g.submittedAt) + giveUpMs(giveUpHours);
+  return Date.parse(g.submittedAt) + giveUpMs(giveUpMinutes);
 }
 
 /** When the app next asks NCBI about this search. */

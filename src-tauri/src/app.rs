@@ -111,6 +111,9 @@ fn load_defaults(state: &AppState) -> Settings {
 /// their own value.
 pub fn defaults_from_json(text: &str) -> Settings {
     let Ok(mut v) = serde_json::from_str::<Value>(text) else { return Settings::default() };
+    if let Some(b) = v.get_mut("blast") {
+        migrate_blast_settings(b);
+    }
     if let Some(b) = v.get_mut("blast").and_then(Value::as_object_mut) {
         if b.get("location").is_none() && b.get("maxHits").and_then(Value::as_u64) == Some(100) {
             b.insert("maxHits".into(), DEFAULT_MAX_HITS.into());
@@ -875,7 +878,7 @@ async fn run_queue(app: &AppHandle) {
                 blast.location = current.location;
                 blast.blastn_path = current.blastn_path.clone();
                 blast.local_db = current.local_db.clone();
-                let max = blast::max_wait(current.give_up_hours);
+                let max = blast::max_wait(current.give_up_minutes);
                 Some((g.clone(), blast, h.project.settings.email.clone(), max))
             })
         };
@@ -1123,5 +1126,6 @@ mod tests {
         assert_eq!(defaults_from_json(r#"{"blast":{"maxHits":250}}"#).blast.max_hits, 250);
         assert_eq!(defaults_from_json(r#"{"blast":{"maxHits":100,"location":"ncbi"}}"#).blast.max_hits, 100);
         assert_eq!(defaults_from_json("not json").blast.max_hits, 10);
+        assert_eq!(defaults_from_json(r#"{"blast":{"giveUpHours":2}}"#).blast.give_up_minutes, 120);
     }
 }

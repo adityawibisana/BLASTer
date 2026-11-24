@@ -46,12 +46,13 @@ describe("processes", () => {
     expect(canResend(local)).toBe(true);
   });
 
-  it("gives up at the setting, kept within 0.5–24 h", () => {
-    expect(deadline(g({}), 2)).toBe(T0 + 2 * 3_600_000);
-    expect(deadline(g({}), 3)).toBe(T0 + 3 * 3_600_000);
-    expect(giveUpMs(0)).toBe(1_800_000);
+  it("gives up at the setting in minutes, kept within 10 min – 24 h", () => {
+    expect(deadline(g({}), 120)).toBe(T0 + 2 * 3_600_000);
+    expect(deadline(g({}), 45)).toBe(T0 + 45 * 60_000);
+    expect(giveUpMs(0)).toBe(600_000);
+    expect(giveUpMs(5000)).toBe(24 * 3_600_000);
     expect(giveUpMs(undefined)).toBe(7_200_000);
-    expect(deadline(g({ status: "ready" }), 2)).toBeNull();
+    expect(deadline(g({ status: "ready" }), 120)).toBeNull();
   });
 
   it("next check is a minute after the last one, or after NCBI's estimate", () => {
