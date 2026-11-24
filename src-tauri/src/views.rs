@@ -49,6 +49,9 @@ pub struct GroupView<'a> {
     pub finished_at: &'a Option<String>,
     pub attempts: u32,
     pub error: &'a Option<String>,
+    pub rtoe_secs: Option<u64>,
+    pub last_checked_at: &'a Option<String>,
+    pub last_check: &'a Option<String>,
 }
 
 #[derive(Serialize)]
@@ -204,6 +207,9 @@ pub fn project_view(h: &ProjectHandle, blast_running: bool) -> ProjectView<'_> {
                 finished_at: &g.finished_at,
                 attempts: g.attempts,
                 error: &g.error,
+                rtoe_secs: g.rtoe_secs,
+                last_checked_at: &g.last_checked_at,
+                last_check: &g.last_check,
             })
             .collect(),
         blast_running,

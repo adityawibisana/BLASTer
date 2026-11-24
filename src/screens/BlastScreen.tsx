@@ -6,6 +6,7 @@ import { api, errorText } from "../api";
 import { useApp } from "../state";
 import { Badge, Field, Modal, PageHeader, Stat } from "../components/ui";
 import { duration, isNcbiOffPeak, shortDate } from "../lib/format";
+import { isSlow } from "../lib/processes";
 import type { BlastSettings, GroupStatus, GroupView } from "../types";
 
 const STATUS: Record<GroupStatus, { label: string; tone: "ok" | "warn" | "bad" | "info" }> = {
@@ -35,7 +36,9 @@ function estimate(groups: GroupView[], now: number) {
   const avg = done.length
     ? done.reduce((a, g) => a + (Date.parse(g.finishedAt!) - Date.parse(g.submittedAt!)), 0) / done.length
     : 4 * 60_000; // before any group finishes, assume ~4 min per group
-  return { remaining, finishAt: now + avg * remaining, guessed: done.length === 0 };
+  // A search running far past the usual time makes any estimate meaningless.
+  const overdue = groups.some((g) => isSlow(g, now));
+  return { remaining, finishAt: now + avg * remaining, guessed: done.length === 0, overdue };
 }
 
 export default function BlastScreen() {
@@ -123,7 +126,12 @@ export default function BlastScreen() {
             {est && (
               <Stat
                 label={est.guessed ? "Estimated finish (rough)" : "Estimated finish"}
-                value={new Date(est.finishAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+                value={
+                  est.overdue
+                    ? "Unknown, waiting on NCBI"
+                    : new Date(est.finishAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
+                }
+                tone={est.overdue ? "warn" : undefined}
               />
             )}
           </div>
@@ -131,7 +139,12 @@ export default function BlastScreen() {
           {project.blastRunning && (
             <div className="card flex items-center gap-2 border-accent px-4 py-2.5">
               <Loader2 size={16} className="animate-spin text-accent" />
-              Searching: {open} group(s) left. You can keep reviewing finished samples under Results; closing the app is safe, the search resumes next time.
+              <span className="flex-1">
+                Searching: {open} group(s) left. You can keep reviewing finished samples under Results; closing the app is safe, the search resumes next time.
+              </span>
+              <button className="btn btn-sm" onClick={() => go("processes")}>
+                Details
+              </button>
             </div>
           )}
           {!offPeak && needSearch > 100 && (

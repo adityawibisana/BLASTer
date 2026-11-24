@@ -26,6 +26,8 @@ pub struct BlastSettings {
     pub exclude_models: bool,
     pub exclude_uncultured: bool,
     pub group_size: usize,
+    /// A search NCBI still reports as waiting after this many hours is given up.
+    pub give_up_hours: f64,
 }
 
 impl Default for BlastSettings {
@@ -39,6 +41,7 @@ impl Default for BlastSettings {
             exclude_models: false,
             exclude_uncultured: false,
             group_size: 20,
+            give_up_hours: 2.0,
         }
     }
 }
@@ -268,6 +271,33 @@ pub struct BlastGroup {
     pub finished_at: Option<String>,
     pub attempts: u32,
     pub error: Option<String>,
+    /// When the app last asked NCBI about this search, and NCBI's answer
+    /// ("WAITING", "READY", ...). Shows the user that the search is still alive.
+    #[serde(default)]
+    pub last_checked_at: Option<String>,
+    #[serde(default)]
+    pub last_check: Option<String>,
+}
+
+impl BlastGroup {
+    /// Put the group back in the queue so its search is sent to NCBI again with a
+    /// new RID. Only for a group still waiting or one that did not finish.
+    pub fn reset_for_resend(&mut self) -> anyhow::Result<()> {
+        match self.status {
+            GroupStatus::Submitted | GroupStatus::Failed | GroupStatus::Expired | GroupStatus::Cancelled => {}
+            GroupStatus::Pending => anyhow::bail!("group {} has not been sent yet", self.id),
+            GroupStatus::Ready => anyhow::bail!("group {} already has its results", self.id),
+        }
+        self.status = GroupStatus::Pending;
+        self.rid = None;
+        self.rtoe_secs = None;
+        self.submitted_at = None;
+        self.finished_at = None;
+        self.error = None;
+        self.last_checked_at = None;
+        self.last_check = None;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
@@ -331,4 +361,61 @@ pub struct Project {
     /// Suggestions the user rejected, as (forward ID, reverse ID); not suggested again.
     #[serde(default)]
     pub rejected_pairs: Vec<(String, String)>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn group(status: GroupStatus) -> BlastGroup {
+        BlastGroup {
+            id: "g0002".into(),
+            sample_ids: vec!["a".into()],
+            fingerprints: vec!["f".into()],
+            fasta: ">a\nACGT\n".into(),
+            status,
+            rid: Some("GANJXGSA016".into()),
+            rtoe_secs: Some(30),
+            submitted_at: Some("2026-11-24T16:18:22+07:00".into()),
+            finished_at: None,
+            attempts: 1,
+            error: Some("NCBI did not finish".into()),
+            last_checked_at: Some("2026-11-24T17:36:00+07:00".into()),
+            last_check: Some("WAITING".into()),
+        }
+    }
+
+    #[test]
+    fn resend_puts_a_waiting_or_failed_group_back_in_the_queue() {
+        for status in [GroupStatus::Submitted, GroupStatus::Failed, GroupStatus::Expired, GroupStatus::Cancelled] {
+            let mut g = group(status);
+            g.reset_for_resend().unwrap();
+            assert_eq!(g.status, GroupStatus::Pending);
+            assert_eq!((g.rid, g.submitted_at, g.error, g.last_check, g.last_checked_at), (None, None, None, None, None));
+            // The query itself and the attempt count are kept.
+            assert_eq!((g.fasta.as_str(), g.attempts, g.sample_ids.len()), (">a\nACGT\n", 1, 1));
+        }
+    }
+
+    #[test]
+    fn resend_leaves_finished_and_unsent_groups_alone() {
+        for status in [GroupStatus::Ready, GroupStatus::Pending] {
+            let mut g = group(status.clone());
+            assert!(g.reset_for_resend().is_err());
+            assert_eq!(g.status, status);
+            assert_eq!(g.rid.as_deref(), Some("GANJXGSA016"));
+        }
+    }
+
+    #[test]
+    fn old_projects_without_check_fields_still_load() {
+        let mut v = serde_json::to_value(group(GroupStatus::Submitted)).unwrap();
+        let o = v.as_object_mut().unwrap();
+        o.remove("lastCheckedAt");
+        o.remove("lastCheck");
+        let g: BlastGroup = serde_json::from_value(v).unwrap();
+        assert_eq!(g.last_check, None);
+        let s: BlastSettings = serde_json::from_str(r#"{"groupSize": 20}"#).unwrap();
+        assert_eq!(s.give_up_hours, 2.0);
+    }
 }

@@ -54,6 +54,7 @@ export interface BlastSettings {
   excludeModels: boolean;
   excludeUncultured: boolean;
   groupSize: number;
+  giveUpHours: number;
 }
 
 export interface Settings {
@@ -171,6 +172,9 @@ export interface GroupView {
   finishedAt: string | null;
   attempts: number;
   error: string | null;
+  rtoeSecs: number | null;
+  lastCheckedAt: string | null;
+  lastCheck: string | null;
 }
 
 export interface CompiledRow {

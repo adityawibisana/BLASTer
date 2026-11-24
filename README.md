@@ -527,20 +527,28 @@ Saving is automatic after every change. *File → Open* and a **recent projects*
    - the primer auto-detect summary, to confirm
 2. **Trim / QC:** the chromatogram with primers and trim limits, which can be dragged, plus live % HQ, length, and translation check.
 3. **BLAST:** shows the search settings, then submits the search. Progress shows groups done / remaining and the estimated finish time.
-4. **Results:**
+4. **Processes:** every BLAST group sent to NCBI, so the user can see what the app is waiting for. The menu entry shows how many groups are left (amber when one is slow, red when some did not finish).
+   - a batch progress bar: groups done and samples with results
+   - for each group, a stage track (Queued → Sent → NCBI searching → Downloading → Done) with a status icon and the run time
+   - a heartbeat: NCBI's last answer and when the app checks again (once a minute, as NCBI requires)
+   - a warning when NCBI takes longer than 15 minutes for a group (usually 1–10), saying it is NCBI's queue, why the later groups wait, and when the app gives up
+   - **Send again** for a group still waiting or one that did not finish, after a confirmation: a new search replaces the old one
+   - **View on NCBI** opens NCBI's own page for the search; clicking a group lists its samples
+5. **Results:**
    - the batch overview
    - for each sample: the summary, hit list, and alignment detail
    - the **Compile results** button, which opens the compiled per-sample table and the species chart
-5. **Export:** choose Excel and/or PDF and where to save.
-6. **Settings:**
+6. **Export:** choose Excel and/or PDF and where to save.
+7. **Settings:**
    - NCBI email and language
    - HQ quality cut-off, HQ threshold, and minimum length
    - expected length ranges and the ambiguous-base limit
    - primer option (auto-detect / preset / custom / none), primer library, and allowed mismatches
    - optional F/R filename pattern
    - BLAST queries per submission (default 20)
+   - give up on a search NCBI still reports as waiting after (default 2 hours, 0.5–24)
    - Compile: minimum query cover for a hit to count (default 80%)
-7. **Help Us:** the open questions for the lab (which primers were used, and the Geneious reference data). Each has an **Answer** button that opens its GitHub issue ([#7](https://github.com/adityawibisana/BLASTer/issues/7), [#8](https://github.com/adityawibisana/BLASTer/issues/8)) in the browser.
+8. **Help Us:** the open questions for the lab (which primers were used, and the Geneious reference data). Each has an **Answer** button that opens its GitHub issue ([#7](https://github.com/adityawibisana/BLASTer/issues/7), [#8](https://github.com/adityawibisana/BLASTer/issues/8)) in the browser.
 
 ## Error handling
 
@@ -553,10 +561,11 @@ Problems are shown as clear messages on the affected sample or step. Nothing fai
 | A FASTA record is empty or holds a character that is not a DNA base | Lists the record as *skipped*; the other records continue |
 | No internet connection | Steps 1–6 still work fully offline; BLAST waits and shows *offline*, with a *Retry* button |
 | NCBI rejects the request, or reports too many requests | Waits and retries with increasing delays, never faster than NCBI's limits; shows the NCBI message if it keeps failing |
-| NCBI search takes very long | Keeps polling once a minute and shows elapsed time; the user can cancel; the RID is saved so a closed app can continue later. A search NCBI still reports as waiting after **2 hours** is given up: its group is marked failed, the rest of the batch continues, and the group can be searched again |
+| NCBI search takes very long | Keeps polling once a minute and shows elapsed time; the user can cancel; the RID is saved so a closed app can continue later. A search NCBI still reports as waiting after **2 hours** (a setting) is given up: its group is marked failed, the rest of the batch continues, and the group can be sent again from **Processes**. After 15 minutes Processes explains the wait and offers to send the group again sooner |
 | RID expired before results were fetched | Offers to resubmit |
 | NCBI returns no hits for a sample | Shows *No significant similarity found* (as NCBI does) and flags the sample |
 | No email set in Settings | Asks for it before the first BLAST, because NCBI requires it |
+| App closed while a search runs | Asks first. Closing is safe: the project is saved and the search continues the next time the project is opened |
 | Disk full or project file not writable | Stops saving, keeps the work in memory, and asks for another location |
 
 ## Scope
@@ -693,7 +702,7 @@ Changes to docs, samples or screenshots alone do not trigger a release.
 | 8 | Project reopens offline | Passed |
 | 9 | Installer on clean Windows 10 and 11 | Installer built; not yet tried on clean machines |
 | 10 | Compile results | Passed: 18 samples, 5 species, counts add up |
-| 11 | 1000-sample scale | Compile of 1000 samples takes 0.06 s. Resume after closing the app mid-run passed against a mock server. A real NCBI run of 100+ samples is still to do |
+| 11 | 1000-sample scale | Passed. Compile of 1000 samples takes 0.06 s. Real NCBI run on 2026-11-24: 120 reads (the 20 example reads copied 6 times), 108 eligible in 6 groups of up to 20. 100 samples got results in 5 groups and compiled to 5 species (counts add up to 100); 12 reads failed QC. The app was closed mid-run 4 times and each time resumed on reopening without resending a finished group. Submissions were at least 10 s apart, and each search was checked once a minute. Two groups were stuck at NCBI in *waiting*: one was given up after 2 hours and finished in about a minute when sent again from Processes; the last group (8 samples) was still waiting after 13 minutes when the run was stopped |
 
 ## Status (Phase 2)
 

@@ -19,7 +19,7 @@ pub mod views;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -41,9 +41,17 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { .. } = event {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let state = window.state::<app::AppState>();
                 // Flush unsaved changes before the window closes.
-                let _ = app::save_now(&window.state::<app::AppState>());
+                let _ = app::save_now(&state);
+                // A search is running: ask first. The window shows the question and
+                // calls `quit_app` if the user still wants to close.
+                let open = app::open_groups(&state);
+                if open > 0 {
+                    api.prevent_close();
+                    let _ = window.emit("confirm-close", open);
+                }
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -79,6 +87,8 @@ pub fn run() {
             app::export_raw,
             app::start_blast,
             app::cancel_blast,
+            app::resubmit_group,
+            app::quit_app,
         ])
         .run(tauri::generate_context!())
         .expect("error while running the application");

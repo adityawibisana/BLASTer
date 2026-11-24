@@ -167,3 +167,23 @@ body {
   font-size: 12px;
   color: var(--muted);
 }
+/* One pulse each time the app checks a search with NCBI (re-keyed per check). */
+@keyframes beat {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+.beat {
+  animation: beat 1.2s ease-out 1 forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .beat {
+    animation: none;
+    opacity: 0;
+  }
+}

@@ -1,8 +1,11 @@
+import { useEffect, useState } from "react";
 import clsx from "clsx";
+import { listen } from "@tauri-apps/api/event";
 import { Toaster } from "sonner";
 import { useTranslation } from "react-i18next";
 import { save } from "@tauri-apps/plugin-dialog";
 import {
+  Activity,
   Dna,
   FileDown,
   FolderOpen,
@@ -17,6 +20,8 @@ import {
 } from "lucide-react";
 import { AppProvider, useApp, type Screen } from "./state";
 import { api } from "./api";
+import { Modal } from "./components/ui";
+import { summary } from "./lib/processes";
 import StartScreen from "./screens/StartScreen";
 import ImportScreen from "./screens/ImportScreen";
 import TrimScreen from "./screens/TrimScreen";
@@ -25,12 +30,14 @@ import ResultsScreen from "./screens/ResultsScreen";
 import ExportScreen from "./screens/ExportScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import HelpScreen from "./screens/HelpScreen";
+import ProcessesScreen from "./screens/ProcessesScreen";
 
 const NAV: { id: Screen; icon: typeof Home; needsProject: boolean }[] = [
   { id: "start", icon: Home, needsProject: false },
   { id: "import", icon: FolderOpen, needsProject: true },
   { id: "trim", icon: SlidersHorizontal, needsProject: true },
   { id: "blast", icon: Search, needsProject: true },
+  { id: "processes", icon: Activity, needsProject: false },
   { id: "results", icon: ListChecks, needsProject: true },
   { id: "export", icon: FileDown, needsProject: true },
   { id: "settings", icon: SettingsIcon, needsProject: false },
@@ -40,6 +47,25 @@ const NAV: { id: Screen; icon: typeof Home; needsProject: boolean }[] = [
 function Shell() {
   const { t } = useTranslation();
   const { project, screen, go, run, setProject, select } = useApp();
+  const [closeAsk, setCloseAsk] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  // The window asks before closing while a search runs (the backend holds the close).
+  useEffect(() => {
+    const off = listen<number>("confirm-close", (e) => setCloseAsk(e.payload));
+    return () => {
+      off.then((f) => f());
+    };
+  }, []);
+
+  // Keep the menu badge's "slow" colour current while searches run.
+  const running = !!project?.blastRunning;
+  useEffect(() => {
+    if (!running) return;
+    const t = window.setInterval(() => setNow(Date.now()), 15_000);
+    return () => window.clearInterval(t);
+  }, [running]);
+  const proc = summary(project?.groups ?? [], now);
 
   const closeProject = async () => {
     const ok = await run(() => api.closeProject());
@@ -63,6 +89,7 @@ function Shell() {
     import: ImportScreen,
     trim: TrimScreen,
     blast: BlastScreen,
+    processes: ProcessesScreen,
     results: ResultsScreen,
     export: ExportScreen,
     settings: SettingsScreen,
@@ -98,6 +125,23 @@ function Shell() {
                 <Icon size={16} />
                 {t(`nav.${id}`)}
                 {id === "blast" && project?.blastRunning && <Loader2 size={14} className="ml-auto animate-spin text-accent" />}
+                {id === "processes" && running && proc.open > 0 && (
+                  <span
+                    title={proc.slow ? "A search is taking longer than usual" : `${proc.open} group(s) left`}
+                    className={clsx(
+                      "ml-auto inline-flex items-center gap-1 rounded-full px-1.5 text-[11.5px] font-semibold",
+                      proc.slow ? "bg-warn-soft text-warn" : "bg-accent-soft text-accent-strong",
+                    )}
+                  >
+                    <Loader2 size={11} className="animate-spin" />
+                    {proc.open}
+                  </span>
+                )}
+                {id === "processes" && !running && proc.failed > 0 && (
+                  <span title={`${proc.failed} group(s) did not finish`} className="ml-auto rounded-full bg-bad-soft px-1.5 text-[11.5px] font-semibold text-bad">
+                    {proc.failed}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -130,6 +174,26 @@ function Shell() {
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Body />
       </main>
+      <Modal
+        open={closeAsk != null}
+        onOpenChange={(v) => !v && setCloseAsk(null)}
+        title="A BLAST search is still running"
+        footer={
+          <>
+            <button className="btn" onClick={() => setCloseAsk(null)}>
+              Keep open
+            </button>
+            <button className="btn btn-primary" onClick={() => api.quitApp()}>
+              Close
+            </button>
+          </>
+        }
+      >
+        <p className="m-0">
+          {closeAsk} group{closeAsk === 1 ? "" : "s"} still {closeAsk === 1 ? "waits" : "wait"} for NCBI. If you close now, the search stops and
+          continues automatically the next time you open this project. Nothing is lost.
+        </p>
+      </Modal>
     </div>
   );
 }

@@ -52,6 +52,8 @@ export const api = {
   startBlast: (onlyChanged: boolean) =>
     invoke<{ queuedSamples: number; groups: number }>("start_blast", { onlyChanged }),
   cancelBlast: () => invoke<void>("cancel_blast"),
+  resubmitGroup: (id: string) => invoke<void>("resubmit_group", { id }),
+  quitApp: () => invoke<void>("quit_app"),
 };
 
 export function errorText(e: unknown): string {

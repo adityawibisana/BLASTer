@@ -239,6 +239,12 @@ export default function SettingsScreen() {
           <Field label="Samples per submission" hint="Searches are sent one group after another">
             <Num value={draft.blast.groupSize} onChange={(v) => set("blast", { ...draft.blast, groupSize: v })} min={1} max={100} />
           </Field>
+          <Field
+            label="Give up on a search after (hours)"
+            hint="NCBI usually needs 1–10 minutes per group. A search still waiting after this is stopped so the batch can continue; it can be sent again from Processes."
+          >
+            <Num value={draft.blast.giveUpHours} onChange={(v) => set("blast", { ...draft.blast, giveUpHours: v })} step={0.5} min={0.5} max={24} />
+          </Field>
           <Field label="Max hits per sample">
             <Num value={draft.blast.maxHits} onChange={(v) => set("blast", { ...draft.blast, maxHits: v })} min={10} max={500} />
           </Field>

@@ -605,6 +605,8 @@ pub fn start_blast(app: AppHandle, state: State<'_, AppState>, only_changed: boo
                 finished_at: None,
                 attempts: 0,
                 error: None,
+                last_checked_at: None,
+                last_check: None,
             });
             next += 1;
         }
@@ -630,6 +632,76 @@ fn has_unfinished_now(state: &AppState) -> bool {
 pub fn cancel_blast(app: AppHandle, state: State<'_, AppState>) {
     state.cancel.store(true, Ordering::SeqCst);
     changed(&app, "blast");
+}
+
+/// Number of groups still queued or waiting at NCBI while a search runs (0 when idle).
+pub fn open_groups(state: &AppState) -> usize {
+    if !state.running.load(Ordering::SeqCst) {
+        return 0;
+    }
+    state.lock().as_ref().map_or(0, |h| {
+        h.project.blast.groups.iter().filter(|g| matches!(g.status, GroupStatus::Pending | GroupStatus::Submitted)).count()
+    })
+}
+
+/// Close the app after the user confirmed it while a search was running. The
+/// project is saved first; the search resumes the next time it is opened.
+#[tauri::command]
+pub fn quit_app(app: AppHandle) {
+    let _ = save_now(&app.state::<AppState>());
+    app.exit(0);
+}
+
+/// Send one group's search to NCBI again: its current RID (if any) is dropped and
+/// the group goes back in the queue. The runner notices within a second.
+#[tauri::command]
+pub fn resubmit_group(app: AppHandle, state: State<'_, AppState>, id: String) -> CmdResult<()> {
+    mutate(&state, |h| {
+        let g = h.project.blast.groups.iter_mut().find(|g| g.id == id).ok_or_else(|| anyhow::anyhow!("no group {id}"))?;
+        g.reset_for_resend()
+    })?;
+    spawn_runner(app.clone());
+    changed(&app, "blast");
+    Ok(())
+}
+
+/// Whether the group is still waiting on this RID (it was not sent again meanwhile).
+fn still_current(app: &AppHandle, id: &str, rid: &str) -> bool {
+    let state = app.state::<AppState>();
+    let guard = state.lock();
+    guard
+        .as_ref()
+        .and_then(|h| h.project.blast.groups.iter().find(|g| g.id == id))
+        .is_some_and(|g| g.status == GroupStatus::Submitted && g.rid.as_deref() == Some(rid))
+}
+
+/// Like `sleep_unless_cancelled`, but also stops when the group is sent again.
+async fn sleep_while_current(app: &AppHandle, d: Duration, id: &str, rid: &str) -> bool {
+    let state = app.state::<AppState>();
+    let end = Instant::now() + d;
+    while Instant::now() < end {
+        if state.cancel.load(Ordering::SeqCst) || !still_current(app, id, rid) {
+            return false;
+        }
+        tokio::time::sleep(Duration::from_secs(1).min(end - Instant::now())).await;
+    }
+    !state.cancel.load(Ordering::SeqCst) && still_current(app, id, rid)
+}
+
+/// Record NCBI's latest answer for a group. Not saved on its own: it only shows the
+/// user that the search is alive, and is written with the next real change.
+fn record_check(app: &AppHandle, id: &str, rid: &str, answer: &str) {
+    let state = app.state::<AppState>();
+    {
+        let mut guard = state.lock();
+        if let Some(g) = guard.as_mut().and_then(|h| h.project.blast.groups.iter_mut().find(|g| g.id == id)) {
+            if g.rid.as_deref() == Some(rid) {
+                g.last_checked_at = Some(chrono::Local::now().to_rfc3339());
+                g.last_check = Some(answer.into());
+            }
+        }
+    }
+    changed(app, "blast");
 }
 
 pub fn spawn_runner(app: AppHandle) {
@@ -739,10 +811,12 @@ async fn run_queue(app: &AppHandle) {
                     .find(|g| g.status == GroupStatus::Submitted)
                     .or_else(|| h.project.blast.groups.iter().find(|g| g.status == GroupStatus::Pending))?;
                 let blast = h.project.blast.settings_used.clone().unwrap_or_else(|| h.project.settings.blast.clone());
-                Some((g.clone(), blast, h.project.settings.email.clone()))
+                // The limit follows the project's current setting, so a change applies to a running batch.
+                let max = blast::max_wait(h.project.settings.blast.give_up_hours);
+                Some((g.clone(), blast, h.project.settings.email.clone(), max))
             })
         };
-        let Some((group, blast_settings, email)) = next else { break };
+        let Some((group, blast_settings, email, max_wait)) = next else { break };
         let gid = group.id.clone();
 
         // Submit (or resume a group that already has a RID).
@@ -794,17 +868,30 @@ async fn run_queue(app: &AppHandle) {
         };
 
         // Poll no more than once a minute.
-        if !sleep_unless_cancelled(app, first_wait).await {
+        if !sleep_while_current(app, first_wait, &gid, &rid).await {
             continue;
         }
         let outcome = loop {
-            match with_retries(app, &gid, || client.status(&rid)).await {
+            if !still_current(app, &gid, &rid) {
+                break None;
+            }
+            let answer = with_retries(app, &gid, || client.status(&rid)).await;
+            if let Ok(Some(s)) = &answer {
+                let text = match s {
+                    SearchStatus::Waiting => "WAITING",
+                    SearchStatus::Ready { .. } => "READY",
+                    SearchStatus::Failed(_) => "FAILED",
+                    SearchStatus::Unknown => "UNKNOWN",
+                };
+                record_check(app, &gid, &rid, text);
+            }
+            match answer {
                 Ok(Some(SearchStatus::Waiting)) => {
-                    if blast::waited_too_long(submitted_at.as_deref(), chrono::Local::now().fixed_offset()) {
-                        let hours = blast::MAX_WAIT.as_secs() / 3600;
-                        break Some(Err((GroupStatus::Failed, format!("NCBI did not finish this search within {hours} hours; search the group again"))));
+                    if blast::waited_too_long(submitted_at.as_deref(), chrono::Local::now().fixed_offset(), max_wait) {
+                        let limit = blast::wait_text(max_wait);
+                        break Some(Err((GroupStatus::Failed, format!("NCBI did not finish this search within {limit}; send it again"))));
                     }
-                    if !sleep_unless_cancelled(app, blast::POLL_INTERVAL).await {
+                    if !sleep_while_current(app, blast::POLL_INTERVAL, &gid, &rid).await {
                         break None;
                     }
                 }
@@ -820,16 +907,21 @@ async fn run_queue(app: &AppHandle) {
         match outcome {
             None => continue, // cancelled; the group stays Submitted and can resume later
             Some(Err((status, msg))) => {
-                update_group(app, &gid, |g| {
-                    g.status = status;
-                    g.error = Some(msg);
-                });
+                if still_current(app, &gid, &rid) {
+                    update_group(app, &gid, |g| {
+                        g.status = status;
+                        g.error = Some(msg);
+                    });
+                }
                 continue;
             }
             Some(Ok(())) => {}
         }
 
         let fetched = with_retries(app, &gid, || client.fetch_json(&rid)).await;
+        if !still_current(app, &gid, &rid) {
+            continue; // sent again while downloading: the new search replaces this one
+        }
         match fetched {
             Ok(Some(json)) => {
                 if let Err(e) = store_results(app, &group, json) {
