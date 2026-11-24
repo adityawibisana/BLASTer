@@ -161,7 +161,7 @@ export default function ProcessesScreen() {
   if (!project) return <Empty>No project open. Processes are the BLAST searches of the open project.</Empty>;
 
   const groups = project.groups;
-  const giveUp = project.settings.blast.giveUpHours;
+  const giveUp = project.settings.blast.giveUpMinutes;
   const where = project.settings.blast.location ?? "ncbi";
   const onWebsite = (g: GroupView) => run(() => api.openOnWebsite(g.id));
   const waitingForYou = where === "website" ? groups.filter((g) => g.status === "pending") : [];

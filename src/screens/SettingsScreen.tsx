@@ -299,10 +299,10 @@ export default function SettingsScreen() {
             <Num value={draft.blast.groupSize} onChange={(v) => set("blast", { ...draft.blast, groupSize: v })} min={1} max={100} />
           </Field>
           <Field
-            label="Give up on a search after (hours)"
+            label="Give up on a search after (minutes)"
             hint="NCBI usually needs 1–10 minutes per group. A search still waiting after this is stopped so the batch can continue; it can be sent again from Processes."
           >
-            <Num value={draft.blast.giveUpHours} onChange={(v) => set("blast", { ...draft.blast, giveUpHours: v })} step={0.5} min={0.5} max={24} />
+            <Num value={draft.blast.giveUpMinutes} onChange={(v) => set("blast", { ...draft.blast, giveUpMinutes: v })} step={5} min={10} max={1440} />
           </Field>
           <Field label="Max hits per sample" hint="10 is usually enough to name a species. Fewer hits make each NCBI search lighter and faster to download.">
             <Num value={draft.blast.maxHits} onChange={(v) => set("blast", { ...draft.blast, maxHits: v })} min={10} max={500} />

@@ -54,7 +54,8 @@ export interface BlastSettings {
   excludeModels: boolean;
   excludeUncultured: boolean;
   groupSize: number;
-  giveUpHours: number;
+  /** A search NCBI still reports as waiting after this many minutes is given up. */
+  giveUpMinutes: number;
   /** ncbi: the app sends searches to NCBI; website: the user runs them on the NCBI website and imports the results; local: BLAST+ on this computer. */
   location: BlastLocation;
   blastnPath: string;

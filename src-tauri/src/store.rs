@@ -117,7 +117,9 @@ pub fn open(path: &Path) -> Result<ProjectHandle> {
         let mut entry = archive.by_name(PROJECT_JSON).context("the project file has no project.json")?;
         let mut text = String::new();
         entry.read_to_string(&mut text)?;
-        serde_json::from_str(&text).context("project.json cannot be read")?
+        let mut v: serde_json::Value = serde_json::from_str(&text).context("project.json cannot be read")?;
+        crate::model::migrate_project(&mut v);
+        serde_json::from_value(v).context("project.json cannot be read")?
     };
     if project.format > PROJECT_FORMAT {
         bail!("this project was saved by a newer version of the app");

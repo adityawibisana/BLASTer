@@ -41,13 +41,34 @@ pub struct BlastSettings {
     pub exclude_models: bool,
     pub exclude_uncultured: bool,
     pub group_size: usize,
-    /// A search NCBI still reports as waiting after this many hours is given up.
-    pub give_up_hours: f64,
+    /// A search NCBI still reports as waiting after this many minutes is given up.
+    pub give_up_minutes: u32,
     pub location: BlastLocation,
     /// `blastn` program for [`BlastLocation::Local`]; empty means `blastn` on the PATH.
     pub blastn_path: String,
     /// Local BLAST database (path and name, as for `blastn -db`).
     pub local_db: String,
+}
+
+/// Settings saved before the give-up time was in minutes hold `giveUpHours`;
+/// turn it into `giveUpMinutes`. `blast` is a saved BlastSettings object.
+pub fn migrate_blast_settings(blast: &mut serde_json::Value) {
+    let Some(o) = blast.as_object_mut() else { return };
+    if let Some(h) = o.remove("giveUpHours").and_then(|v| v.as_f64()) {
+        if !o.contains_key("giveUpMinutes") && h.is_finite() {
+            o.insert("giveUpMinutes".into(), ((h * 60.0).round().max(0.0) as u64).into());
+        }
+    }
+}
+
+/// [`migrate_blast_settings`] on every BLAST settings object of a saved project.
+pub fn migrate_project(v: &mut serde_json::Value) {
+    if let Some(b) = v.pointer_mut("/settings/blast") {
+        migrate_blast_settings(b);
+    }
+    if let Some(b) = v.pointer_mut("/blast/settingsUsed") {
+        migrate_blast_settings(b);
+    }
 }
 
 /// Hits kept per query by default, as the Geneious guide on slow NCBI searches suggests.
@@ -64,7 +85,7 @@ impl Default for BlastSettings {
             exclude_models: false,
             exclude_uncultured: false,
             group_size: 20,
-            give_up_hours: 2.0,
+            give_up_minutes: 120,
             location: BlastLocation::Ncbi,
             blastn_path: String::new(),
             local_db: String::new(),
@@ -458,6 +479,22 @@ mod tests {
         let g: BlastGroup = serde_json::from_value(v).unwrap();
         assert_eq!(g.last_check, None);
         let s: BlastSettings = serde_json::from_str(r#"{"groupSize": 20}"#).unwrap();
-        assert_eq!(s.give_up_hours, 2.0);
+        assert_eq!(s.give_up_minutes, 120);
+    }
+
+    #[test]
+    fn give_up_hours_become_minutes() {
+        let mut v = serde_json::json!({
+            "settings": { "blast": { "giveUpHours": 1.5 } },
+            "blast": { "settingsUsed": { "giveUpHours": 0.5, "groupSize": 20 } },
+        });
+        migrate_project(&mut v);
+        let s: BlastSettings = serde_json::from_value(v["settings"]["blast"].clone()).unwrap();
+        assert_eq!(s.give_up_minutes, 90);
+        assert_eq!(v["blast"]["settingsUsed"], serde_json::json!({ "giveUpMinutes": 30, "groupSize": 20 }));
+        // A value already in minutes wins.
+        let mut b = serde_json::json!({ "giveUpHours": 3, "giveUpMinutes": 45 });
+        migrate_blast_settings(&mut b);
+        assert_eq!(b, serde_json::json!({ "giveUpMinutes": 45 }));
     }
 }

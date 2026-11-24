@@ -15,15 +15,14 @@ pub const TOOL: &str = "coi-barcode-blast";
 pub const SUBMIT_INTERVAL: Duration = Duration::from_secs(10);
 /// NCBI: poll a RID no more than once a minute.
 pub const POLL_INTERVAL: Duration = Duration::from_secs(60);
-/// A search NCBI still reports as waiting after `give_up_hours` (a setting, 2 h by
+/// A search NCBI still reports as waiting after `give_up_minutes` (a setting, 120 by
 /// default) is given up, so one stuck search does not block the rest of the batch.
 /// Its group can be sent again. The setting is kept within these limits.
-pub const GIVE_UP_HOURS_MIN: f64 = 0.5;
-pub const GIVE_UP_HOURS_MAX: f64 = 24.0;
+pub const GIVE_UP_MINUTES_MIN: u32 = 10;
+pub const GIVE_UP_MINUTES_MAX: u32 = 24 * 60;
 
-pub fn max_wait(give_up_hours: f64) -> Duration {
-    let h = if give_up_hours.is_finite() { give_up_hours } else { 2.0 };
-    Duration::from_secs_f64(h.clamp(GIVE_UP_HOURS_MIN, GIVE_UP_HOURS_MAX) * 3600.0)
+pub fn max_wait(give_up_minutes: u32) -> Duration {
+    Duration::from_secs(u64::from(give_up_minutes.clamp(GIVE_UP_MINUTES_MIN, GIVE_UP_MINUTES_MAX)) * 60)
 }
 
 /// Whether a search submitted at `submitted_at` (RFC 3339) has waited longer than
@@ -502,25 +501,24 @@ mod tests {
     #[test]
     fn gives_up_after_max_wait() {
         let at = |s: &str| chrono::DateTime::parse_from_rfc3339(s).unwrap();
-        let two = super::max_wait(2.0);
+        let two = super::max_wait(120);
         let sub = Some("2026-11-24T16:18:22+07:00");
         assert!(!super::waited_too_long(sub, at("2026-11-24T18:18:00+07:00"), two));
         assert!(super::waited_too_long(sub, at("2026-11-24T18:19:00+07:00"), two));
         assert!(super::waited_too_long(sub, at("2026-11-24T11:19:00+00:00"), two));
-        assert!(!super::waited_too_long(sub, at("2026-11-24T18:19:00+07:00"), super::max_wait(3.0)));
+        assert!(!super::waited_too_long(sub, at("2026-11-24T18:19:00+07:00"), super::max_wait(180)));
         assert!(!super::waited_too_long(None, at("2026-11-25T00:00:00+07:00"), two));
         assert!(!super::waited_too_long(Some("not a time"), at("2026-11-25T00:00:00+07:00"), two));
     }
 
     #[test]
     fn wait_limit_is_kept_in_range() {
-        assert_eq!(super::max_wait(2.0).as_secs(), 7200);
-        assert_eq!(super::max_wait(0.0).as_secs(), 1800);
-        assert_eq!(super::max_wait(100.0).as_secs(), 24 * 3600);
-        assert_eq!(super::max_wait(f64::NAN).as_secs(), 7200);
-        assert_eq!(super::wait_text(super::max_wait(2.0)), "2 hours");
-        assert_eq!(super::wait_text(super::max_wait(0.5)), "30 minutes");
-        assert_eq!(super::wait_text(super::max_wait(1.5)), "1.5 hours");
+        assert_eq!(super::max_wait(120).as_secs(), 7200);
+        assert_eq!(super::max_wait(0).as_secs(), 600);
+        assert_eq!(super::max_wait(100_000).as_secs(), 24 * 3600);
+        assert_eq!(super::wait_text(super::max_wait(120)), "2 hours");
+        assert_eq!(super::wait_text(super::max_wait(45)), "45 minutes");
+        assert_eq!(super::wait_text(super::max_wait(90)), "1.5 hours");
     }
 
     use super::*;

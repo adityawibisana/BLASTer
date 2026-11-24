@@ -567,7 +567,7 @@ Saving is automatic after every change. *File → Open* and a **recent projects*
    - BLAST: where to search (default NCBI online), and for this computer the `blastn` program, the local database and **Test BLAST+**
    - BLAST queries per submission (default 20)
    - max hits per sample (default 10)
-   - give up on a search NCBI still reports as waiting after (default 2 hours, 0.5–24)
+   - give up on a search NCBI still reports as waiting after (minutes; default 120, 10–1440)
    - Compile: minimum query cover for a hit to count (default 80%)
 8. **Help Us:** the open questions for the lab (which primers were used, and the Geneious reference data). Each has an **Answer** button that opens its GitHub issue ([#7](https://github.com/adityawibisana/BLASTer/issues/7), [#8](https://github.com/adityawibisana/BLASTer/issues/8)) in the browser.
 
@@ -582,7 +582,7 @@ Problems are shown as clear messages on the affected sample or step. Nothing fai
 | A FASTA record is empty or holds a character that is not a DNA base | Lists the record as *skipped*; the other records continue |
 | No internet connection | Steps 1–6 still work fully offline; BLAST waits and shows *offline*, with a *Retry* button |
 | NCBI rejects the request, or reports too many requests | Waits and retries with increasing delays, never faster than NCBI's limits; shows the NCBI message if it keeps failing |
-| NCBI search takes very long | Keeps polling once a minute and shows elapsed time; the user can cancel; the RID is saved so a closed app can continue later. A search NCBI still reports as waiting after **2 hours** (a setting) is given up: its group is marked failed, the rest of the batch continues, and the group can be sent again from **Processes**. After 15 minutes Processes explains the wait and offers to send the group again sooner |
+| NCBI search takes very long | Keeps polling once a minute and shows elapsed time; the user can cancel; the RID is saved so a closed app can continue later. A search NCBI still reports as waiting after **120 minutes** (a setting, in minutes) is given up: its group is marked failed, the rest of the batch continues, and the group can be sent again from **Processes**. After 15 minutes Processes explains the wait and offers to send the group again sooner |
 | RID expired before results were fetched | Offers to resubmit |
 | Imported results file is for other samples, or a sample changed since | Imports what matches; names the queries that match no sample and the samples that changed, which need a new search |
 | BLAST+ or its database is missing | *Test BLAST+* and the search say what is missing (program not found, no database of that name, a database name with spaces); the group is marked failed and can be sent again |
