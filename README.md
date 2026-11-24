@@ -23,11 +23,19 @@ Main reference: NCBI's open-source tools and APIs at <https://github.com/ncbi>.
 
 ## Highlights
 
-Screenshots use the example batch `COI_20_sequences.zip` (20 mosquito COI traces).
+Screenshots use the example data in `samples/`: `COI_20_sequences.zip` (20 mosquito COI traces) and, for pairs, the BOLD forward/reverse traces in `samples/sangeranalyseR/`.
+
+**Start.** A batch can be a `.zip`, one or more `.ab1` or FASTA files, or a whole folder: choose them, or drop them on the window.
+
+![Start screen: new project from files or a folder, recent projects](screenshots/start.png)
 
 **Import.** Primers are detected automatically for each read, and every trace gets QC stats and a read direction. Reads that fail QC are flagged before anything is sent to NCBI.
 
 ![Import screen: primer auto-detect summary and per-read QC table](screenshots/import.png)
+
+**Forward/reverse pairs.** Reads of the same specimen are suggested as pairs from their names, detected directions and overlap. *Pair all* confirms every suggestion at once; each pair is then searched as one consensus sequence.
+
+![Import screen with 13 suggested forward/reverse pairs from BOLD traces](screenshots/pairs.png)
 
 **Trim / QC.** The chromatogram shows the primer site, the trimmed-off ends and per-base quality. Drag the teal limits to change the kept region; % HQ, length and stop codons update live.
 
@@ -70,18 +78,27 @@ The Rust backend does the heavy work: unpacking, ABIF parsing, trimming, primer 
 
 ## Input
 
-A `.zip` archive of Sanger chromatogram files in ABIF format (`.ab1`), with **up to 1000 samples per batch**. Reads can be:
+Sanger chromatogram files in ABIF format (`.ab1`) and/or FASTA files, with **up to 1000 samples per batch**. A batch can be started from any of these, or a mix of them:
+
+- a `.zip` archive of `.ab1` and/or FASTA files;
+- one or more `.ab1` files;
+- one or more FASTA files;
+- a folder: every `.ab1` and FASTA file in it and its subfolders is read, and zips found there are opened too.
+
+Choose files or a folder on the Start screen, or drag them onto the window. Files that are not `.ab1` or FASTA are listed as *skipped* with the reason, never dropped silently. A file selected twice (for example on its own and again inside its folder) is imported once.
+
+Reads can be:
 
 - **Single reads:** one `.ab1` per sample, sequenced in either direction.
 - **Forward + reverse pairs:** two `.ab1` files per sample, assembled into one consensus sequence before BLAST.
 
 Filenames do not need to say which read is forward or reverse. The app detects each read's direction from its sequence (see step 5).
 
-**FASTA input.** A FASTA file (`.fasta`, `.fas`, `.fa`, `.fna`, `.ffn`, `.seq`) can be imported instead of a zip, and a zip can hold FASTA files alongside `.ab1` files. Each record becomes one sample, named by the first word of its header; the rest of the header is kept as the sample name. FASTA has no quality values, so every base counts as high quality: primers are still found and removed, but there is no quality trim, no chromatogram, and % HQ shows as "—". Gaps (`-`, `.`) and digits are dropped, `U` is read as `T`, and a record with any other non-IUPAC character is listed as *skipped*.
+**FASTA input.** FASTA files (`.fasta`, `.fas`, `.fa`, `.fna`, `.ffn`, `.seq`) can be imported on their own or alongside `.ab1` files, directly, in a folder or in a zip. Each record becomes one sample, named by the first word of its header; the rest of the header is kept as the sample name. FASTA has no quality values, so every base counts as high quality: primers are still found and removed, but there is no quality trim, no chromatogram, and % HQ shows as "—". Gaps (`-`, `.`) and digits are dropped, `U` is read as `T`, and a record with any other non-IUPAC character is listed as *skipped*.
 
-What FASTA cannot give, and why a zip of `.ab1` files is more complete:
+What FASTA cannot give, and why `.ab1` files are more complete:
 
-| | `.zip` of `.ab1` | FASTA |
+| | `.ab1` | FASTA |
 | --- | --- | --- |
 | Quality score per base | Yes | No: every base is taken as correct |
 | HQ trimming of noisy read ends | Yes | No: the whole sequence is kept, minus primers |
@@ -92,7 +109,13 @@ What FASTA cannot give, and why a zip of `.ab1` files is more complete:
 
 The Start screen says this before import, and the Import screen shows a notice whenever a project holds FASTA samples.
 
-Example: `COI_20_sequences.zip` holds 20 COI (cytochrome c oxidase subunit I) barcode reads:
+Example data is in [`samples/`](samples/) (see its README for sources and expected results):
+
+- `samples/COI_20_sequences.zip`: 20 single mosquito COI reads.
+- `samples/sangeranalyseR/`: 13 forward/reverse pairs (26 `.ab1` files) from BOLD, of an earthworm and the fruit fly.
+- `samples/fasta/`: a FASTA file, for trying FASTA import.
+
+`COI_20_sequences.zip` holds 20 COI (cytochrome c oxidase subunit I) barcode reads:
 
 ```
 VN220.ab1     VN222-2.ab1   VN234-2.ab1   VN236-1.ab1   VN239-2.ab1
@@ -234,7 +257,8 @@ Filenames cannot be relied on to say which read is forward and which is reverse.
 - **Put every output in the forward direction.** Reads detected as reverse are reverse-complemented. Every FASTA sequence and export then reads 5'→3' along the COI gene, which is how GenBank and BOLD expect it.
 - **Treat files as single reads by default.** Every file is one sample unless it is paired.
 - **Suggest pairs only with evidence.** Two files are suggested as an F/R pair when:
-  - **their names share a stem with a direction marker:** a separator (`-`, `_`, `.` or space) followed by `F`, `FWD`, `FORWARD`, `LCO`, `LCO1490` or `LepF1`, versus `R`, `REV`, `REVERSE`, `HCO`, `HCO2198` or `LepR1`. Case does not matter. Examples: `S01_F` / `S01_R`, `VN12-LCO` / `VN12-HCO`. A custom pattern in Settings (e.g. `fw,rv`) replaces this list;
+  - **their names share a stem with a direction marker:** a separator (`-`, `_`, `.` or space) followed by `F`, `FWD`, `FORWARD`, `LCO`, `LCO1490` or `LepF1`, versus `R`, `REV`, `REVERSE`, `HCO`, `HCO2198` or `LepR1`. Case does not matter. Examples: `S01_F` / `S01_R`, `VN12-LCO` / `VN12-HCO`. A custom pattern in Settings (e.g. `fw,rv`) replaces this list.
+    BOLD trace names put a read number before the marker (`ACHLO006-09_1_F` / `ACHLO006-09_2_R`). A read left without a match is tried again without that number (1 or 2 digits), but only when exactly one forward and one reverse read share the shorter stem;
   - **their detected directions are opposite;**
   - **their sequences overlap:** at least 50 aligned bases at 90% identity or more.
 
@@ -392,7 +416,7 @@ NCBI shows one query at a time. Since this app handles a whole batch, it adds on
 - stop codon
 - an F/R conflict
 - low identity (e.g. < 97%, a common COI species threshold)
-- mixed species among the top hits: more than one species among hits within 1% identity of the best hit
+- mixed species among the top hits: another named species among hits within 1% identity of the best hit. Placeholder names (*Culicidae sp.*, *Aedes sp.*, BOLD BINs such as *Diptera sp. BOLD:AAA4210*) do not count, because they do not name a competing species
 - too many ambiguous bases
 - *edited*: trim limits were changed by hand
 - *outdated*: the sequence changed after BLAST
@@ -410,12 +434,15 @@ A **Compile results** button on the Results screen answers one question for ever
 2. **Rank by similarity:** the hit with the **highest % identity** wins.
 3. **Break exact ties:**
    1. higher query cover
-   2. higher Max Score
-   3. if still tied, the species backed by more hit records
+   2. a formally named species before a placeholder name (*Culex sp. RP-2019-12*, *Culicidae sp.*, *Aedes cf. albopictus*, BOLD BINs, *uncultured …*)
+   3. higher Max Score
+   4. if still tied, the species backed by more hit records
+
+   Example from the sample data: VN236-1 matches one *Culex sp. RP-2019-12* record and 68 *Culex quinquefasciatus* records, all at 100%. The placeholder record has a slightly higher Max Score, but the answer is *Culex quinquefasciatus*.
 4. **Always one answer.** The app always reports the single highest species, however small the gap to the next one.
-   - The closest *different* species is shown next to it for information only (e.g. *runner-up: Aedes flavopictus, 99.1%*).
+   - The closest *different* named species is shown next to it for information only (e.g. *runner-up: Aedes flavopictus, 99.1%*). A placeholder is shown only when no other named species is among the hits.
    - The runner-up never changes the answer.
-5. **Species name:** taken from the hit's *Scientific Name*. Hits named only to genus (e.g. *Aedes sp.*) are reported exactly as named.
+5. **Species name:** taken from the hit's *Scientific Name*. A hit named only to genus (e.g. *Aedes sp.*) is reported exactly as named when it is strictly closer than every named species: it may be an undescribed or unnamed species.
 
 This ranking can differ from NCBI's own order. NCBI sorts hits by Max Score, so its top hit is not always the one with the highest % identity. Compile ranks by identity, as requested.
 
@@ -477,7 +504,7 @@ For the example batch, the full report is 26 pages and the summary 6.
 
 Each imported batch becomes a **project**, saved as a single `.coiproj` file. It is a zip archive the app manages, and it holds:
 
-- a copy of the original `.ab1` files, so the project still works if the source zip is moved or deleted
+- a copy of the original `.ab1` files, so the project still works if the source files are moved or deleted
 - the settings used for this batch: primers, thresholds, BLAST options
 - every per-read decision: primer positions, trim limits, manual edits, direction, pairs
 - the final FASTA
@@ -492,8 +519,8 @@ Saving is automatic after every change. *File → Open* and a **recent projects*
 
 ## Screens
 
-0. **Start:** create a new project from a `.zip`, or open a recent one.
-1. **Import:** after a `.zip` is chosen, the app shows the file list with:
+0. **Start:** create a new project from a `.zip`, `.ab1` or FASTA files, or a folder (or drop them on the window), or open a recent one.
+1. **Import:** after the files are chosen, the app shows the file list with:
    - per-read stats and QC status
    - the detected direction (F / R / unknown), which can be changed
    - suggested pairs, to confirm or reject
@@ -556,7 +583,7 @@ All 20 example files are single reads, so Phase 1 is everything needed to proces
 
 ## Definition of done (Phase 1)
 
-Phase 1 is done when all of these pass on `COI_20_sequences.zip`:
+Phase 1 is done when all of these pass on `samples/COI_20_sequences.zip`:
 
 1. **Import:** all 20 `.ab1` files parse. Raw length, % HQ and % GC match the Geneious values for the same files (see the reference data under To verify).
 2. **Reference result reproduced:** the reference screenshots show a 638 bp query with **PX112589.1** (*Aedes albopictus* isolate S-7, COX1) as its top hit: Max Score 1175, Query Cover 100%, E value 0.0, 100.00% identity.
@@ -626,11 +653,30 @@ Code layout:
 | `src-tauri/src/export.rs` | Excel, FASTA, raw results |
 | `src-tauri/src/app.rs` | Tauri commands, background BLAST runner, auto-save |
 | `src/screens/` | React screens |
-| `src-tauri/tests/` | Tests against `COI_20_sequences.zip` and a real NCBI response (`tests/fixtures/ncbi_18_samples.json`) |
+| `src-tauri/tests/` | Tests against the data in `samples/` and a real NCBI response (`tests/fixtures/ncbi_18_samples.json`) |
 
 `src-tauri/examples/live_blast.rs` and `reference_check.rs` submit to the real NCBI service, for manual checks.
 
+`src-tauri/examples/evaluate.rs` runs a batch through the whole pipeline as the app does (import, pairs, QC, BLAST, compile) and prints one row per read and per sample, checked against the directions in the file names and the expected species:
+
+```powershell
+cd src-tauri
+cargo run --example evaluate -- ../samples/sangeranalyseR --blast blast-cache.json `
+  --expect "Achl=Allolobophora chlorotica" --expect "Dmel=Drosophila melanogaster"
+```
+
 Setting `COI_BLAST_BASE_URL` points the app at another server instead of NCBI. This is only for testing against a mock server.
+
+### Releases
+
+A nightly GitHub Actions job (`.github/workflows/nightly.yml`, 00:00 UTC+7, or run by hand from the Actions tab) checks whether app code changed since the last `v*` tag. If it did, it:
+
+1. bumps the minor version in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json` (or releases the version already there if it was never tagged);
+2. adds the commits since the last release to `CHANGELOG.md`;
+3. runs the frontend and backend tests, then builds the app;
+4. commits, tags `vX.Y.0`, pushes to `main`, and publishes a GitHub release with the installer (`…_x64-setup.exe`) and a portable `.exe`.
+
+Changes to docs, samples or screenshots alone do not trigger a release.
 
 ## Status (Phase 1)
 
@@ -652,6 +698,6 @@ Setting `COI_BLAST_BASE_URL` points the app at another server instead of NCBI. T
 
 | Item | Status |
 |------|--------|
-| Forward/reverse pairs | Done. Tested on a realistic pair built from VN234-2's real trace (`tests/pairs_flow.rs`, `examples/make_pair_zip.rs`). Results: the pair is suggested; the consensus is 654 bp versus 629 bp for the forward read alone; there is no primer and no conflict; the reverse read is not searched on its own; edits flow into the consensus; swap and unpair work; reads that don't overlap wait for a choice. In the app: suggestion, confirm, Trim/QC banner and consensus all checked. **Not yet tested on real forward/reverse files from the lab.** |
+| Forward/reverse pairs | Done. Tested on a realistic pair built from VN234-2's real trace (`tests/pairs_flow.rs`, `examples/make_pair_zip.rs`), and on **13 real forward/reverse pairs from BOLD** (`samples/sangeranalyseR/`, `tests/flexible_import.rs`): every read's direction is detected correctly, all 13 pairs are suggested and none crosses specimens, consensus 471–658 bp with no stop codon, and NCBI BLAST names the right species for 13 of 13 (*Allolobophora chlorotica* 99.8–100%, *Drosophila melanogaster* 99.8–100%). See `samples/README.md` |
 | PDF report | Done. Summary and full report for the example batch with real NCBI results; pages checked visually; export from the app works |
 | BOLD search | Dropped: no public identification API (step 8) |
