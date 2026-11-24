@@ -103,7 +103,20 @@ fn defaults_path(state: &AppState) -> PathBuf {
 }
 
 fn load_defaults(state: &AppState) -> Settings {
-    std::fs::read_to_string(defaults_path(state)).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default()
+    std::fs::read_to_string(defaults_path(state)).ok().map(|t| defaults_from_json(&t)).unwrap_or_default()
+}
+
+/// Saved defaults. Defaults saved before the BLAST location setting existed carry the
+/// old max-hits default of 100; they move to the new default (10). Open projects keep
+/// their own value.
+pub fn defaults_from_json(text: &str) -> Settings {
+    let Ok(mut v) = serde_json::from_str::<Value>(text) else { return Settings::default() };
+    if let Some(b) = v.get_mut("blast").and_then(Value::as_object_mut) {
+        if b.get("location").is_none() && b.get("maxHits").and_then(Value::as_u64) == Some(100) {
+            b.insert("maxHits".into(), DEFAULT_MAX_HITS.into());
+        }
+    }
+    serde_json::from_value(v).unwrap_or_default()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -578,8 +591,12 @@ pub struct QueueResult {
 pub fn start_blast(app: AppHandle, state: State<'_, AppState>, only_changed: bool) -> CmdResult<QueueResult> {
     let result = mutate(&state, |h| {
         let s = &h.project.settings;
-        if s.email.trim().is_empty() {
+        // NCBI asks for an email with every request the app sends it.
+        if s.blast.location == BlastLocation::Ncbi && s.email.trim().is_empty() {
             anyhow::bail!("NO_EMAIL");
+        }
+        if s.blast.location == BlastLocation::Local {
+            crate::local_blast::database(&s.blast)?;
         }
         let queued = views::queued_ids(&h.project).into_iter().map(String::from).collect::<std::collections::HashSet<_>>();
         let selected: Vec<&Read> = h
@@ -590,7 +607,8 @@ pub fn start_blast(app: AppHandle, state: State<'_, AppState>, only_changed: boo
             .filter(|r| !only_changed || h.result_for(r).is_none() || h.outdated(r))
             .collect();
         let size = s.blast.group_size.clamp(1, 100);
-        let mut next = h.project.blast.groups.len() + 1;
+        let first = crate::results_file::next_group_id(&h.project.blast.groups);
+        let mut next: usize = first[1..].parse().unwrap_or(1);
         let mut new_groups = Vec::new();
         for chunk in selected.chunks(size) {
             new_groups.push(BlastGroup {
@@ -607,6 +625,7 @@ pub fn start_blast(app: AppHandle, state: State<'_, AppState>, only_changed: boo
                 error: None,
                 last_checked_at: None,
                 last_check: None,
+                source: Default::default(),
             });
             next += 1;
         }
@@ -663,6 +682,43 @@ pub fn resubmit_group(app: AppHandle, state: State<'_, AppState>, id: String) ->
     spawn_runner(app.clone());
     changed(&app, "blast");
     Ok(())
+}
+
+/// Import a BLAST results file (downloaded from the NCBI website, or written by
+/// BLAST+) and attach its results to the project's samples.
+#[tauri::command]
+pub async fn import_blast_results(app: AppHandle, path: String) -> CmdResult<crate::results_file::ImportSummary> {
+    let bytes = std::fs::read(&path).map_err(|e| format!("cannot read {path}: {e}"))?;
+    let reports = tauri::async_runtime::spawn_blocking(move || crate::results_file::reports(&bytes))
+        .await
+        .map_err(err)?
+        .map_err(err)?;
+    let state = app.state::<AppState>();
+    let sum = mutate(&state, |h| crate::results_file::import_into(h, reports))?;
+    changed(&app, "blast");
+    Ok(sum)
+}
+
+/// Open the NCBI BLAST website with one group's sequences and settings filled in.
+#[tauri::command]
+pub fn open_on_website(app: AppHandle, state: State<'_, AppState>, id: String) -> CmdResult<()> {
+    let (fasta, settings) = read_only(&state, |h| {
+        let g = h.project.blast.groups.iter().find(|g| g.id == id).ok_or_else(|| anyhow::anyhow!("no group {id}"))?;
+        // The sequences as they are now, so the imported results match the samples.
+        let reads: Vec<&Read> = g.sample_ids.iter().filter_map(|s| h.project.reads.iter().find(|r| &r.id == s)).collect();
+        Ok((crate::fasta::multi(&h.project.reads, reads), h.project.settings.blast.clone()))
+    })?;
+    let page = blast::website_page(&settings, &fasta, &format!("group {id}"));
+    let path = std::env::temp_dir().join(format!("coi-blast-ncbi-{id}.html"));
+    std::fs::write(&path, page).map_err(err)?;
+    use tauri_plugin_opener::OpenerExt;
+    app.opener().open_path(path.to_string_lossy(), None::<&str>).map_err(err)
+}
+
+/// Check the BLAST+ program and local database in `settings`.
+#[tauri::command]
+pub async fn check_local_blast(settings: BlastSettings) -> CmdResult<String> {
+    tauri::async_runtime::spawn_blocking(move || crate::local_blast::check(&settings)).await.map_err(err)?.map_err(err)
 }
 
 /// Whether the group is still waiting on this RID (it was not sent again meanwhile).
@@ -803,21 +859,34 @@ async fn run_queue(app: &AppHandle) {
         let next = {
             let guard = state.lock();
             guard.as_ref().and_then(|h| {
-                let g = h
-                    .project
-                    .blast
-                    .groups
+                let current = &h.project.settings.blast;
+                // With the website, the user sends groups; the app only finishes searches
+                // it already sent to NCBI.
+                let sends = current.location != BlastLocation::Website;
+                let groups = &h.project.blast.groups;
+                let g = groups
                     .iter()
-                    .find(|g| g.status == GroupStatus::Submitted)
-                    .or_else(|| h.project.blast.groups.iter().find(|g| g.status == GroupStatus::Pending))?;
-                let blast = h.project.blast.settings_used.clone().unwrap_or_else(|| h.project.settings.blast.clone());
-                // The limit follows the project's current setting, so a change applies to a running batch.
-                let max = blast::max_wait(h.project.settings.blast.give_up_hours);
+                    .find(|g| g.status == GroupStatus::Submitted && g.rid.is_some())
+                    .or_else(|| groups.iter().find(|g| sends && g.status == GroupStatus::Submitted))
+                    .or_else(|| groups.iter().find(|g| sends && g.status == GroupStatus::Pending))?;
+                let mut blast = h.project.blast.settings_used.clone().unwrap_or_else(|| current.clone());
+                // Where and how long to search follow the current settings, so a change
+                // applies to a batch that is already queued.
+                blast.location = current.location;
+                blast.blastn_path = current.blastn_path.clone();
+                blast.local_db = current.local_db.clone();
+                let max = blast::max_wait(current.give_up_hours);
                 Some((g.clone(), blast, h.project.settings.email.clone(), max))
             })
         };
         let Some((group, blast_settings, email, max_wait)) = next else { break };
         let gid = group.id.clone();
+
+        // BLAST+ on this computer (a group left running when the app closed starts over).
+        if group.rid.is_none() && blast_settings.location == BlastLocation::Local {
+            run_local(app, &group, &blast_settings).await;
+            continue;
+        }
 
         // Submit (or resume a group that already has a RID).
         let (rid, first_wait, submitted_at) = match (&group.status, &group.rid) {
@@ -837,11 +906,17 @@ async fn run_queue(app: &AppHandle) {
                         continue;
                     }
                 }
+                if !still_unsent(app, &gid) {
+                    continue; // results were imported meanwhile
+                }
                 let fasta = group.fasta.clone();
                 let put = with_retries(app, &gid, || client.put(&fasta, &blast_settings, &email)).await;
                 last_submit = Some(Instant::now());
                 match put {
                     Ok(Some((rid, rtoe))) => {
+                        if !still_unsent(app, &gid) {
+                            continue;
+                        }
                         let r = rid.clone();
                         let at = chrono::Local::now().to_rfc3339();
                         let at2 = at.clone();
@@ -852,6 +927,7 @@ async fn run_queue(app: &AppHandle) {
                             g.submitted_at = Some(at2);
                             g.attempts += 1;
                             g.error = None;
+                            g.source = GroupSource::Ncbi;
                         });
                         (rid, blast::POLL_INTERVAL.max(Duration::from_secs(rtoe)), Some(at))
                     }
@@ -943,6 +1019,82 @@ async fn run_queue(app: &AppHandle) {
     }
 }
 
+/// Whether the group still waits to be sent (its results were not imported meanwhile).
+fn still_unsent(app: &AppHandle, id: &str) -> bool {
+    let state = app.state::<AppState>();
+    let guard = state.lock();
+    guard
+        .as_ref()
+        .and_then(|h| h.project.blast.groups.iter().find(|g| g.id == id))
+        .is_some_and(|g| matches!(g.status, GroupStatus::Pending | GroupStatus::Submitted) && g.rid.is_none())
+}
+
+/// Search one group with BLAST+ on this computer.
+async fn run_local(app: &AppHandle, group: &BlastGroup, settings: &BlastSettings) {
+    let gid = group.id.clone();
+    if !still_unsent(app, &gid) {
+        return;
+    }
+    let at = chrono::Local::now().to_rfc3339();
+    update_group(app, &gid, |g| {
+        g.status = GroupStatus::Submitted;
+        g.rid = None;
+        g.rtoe_secs = None;
+        g.submitted_at = Some(at);
+        g.finished_at = None;
+        g.attempts += 1;
+        g.error = None;
+        g.last_check = None;
+        g.last_checked_at = None;
+        g.source = GroupSource::Local;
+    });
+    let mut job = match crate::local_blast::Job::start(settings, &group.fasta, &gid) {
+        Ok(j) => j,
+        Err(e) => {
+            update_group(app, &gid, |g| {
+                g.status = GroupStatus::Failed;
+                g.error = Some(format!("{e:#}"));
+            });
+            return;
+        }
+    };
+    let state = app.state::<AppState>();
+    let status = loop {
+        match job.child.try_wait() {
+            Ok(Some(st)) => break Ok(st),
+            Ok(None) => {}
+            Err(e) => break Err(format!("BLAST+ could not be watched: {e}")),
+        }
+        let current = {
+            let guard = state.lock();
+            guard
+                .as_ref()
+                .and_then(|h| h.project.blast.groups.iter().find(|g| g.id == gid))
+                .is_some_and(|g| g.status == GroupStatus::Submitted && g.source == GroupSource::Local && g.rid.is_none())
+        };
+        if state.cancel.load(Ordering::SeqCst) || !current {
+            drop(job); // stops blastn and removes its scratch folder
+            if current {
+                update_group(app, &gid, |g| {
+                    g.status = GroupStatus::Cancelled;
+                    g.error = None;
+                });
+            }
+            return;
+        }
+        tokio::time::sleep(Duration::from_millis(300)).await;
+    };
+    let result = status.map_err(anyhow::Error::msg).and_then(|st| job.finish(st));
+    drop(job);
+    let outcome = result.and_then(|json| store_results(app, group, json));
+    if let Err(e) = outcome {
+        update_group(app, &gid, |g| {
+            g.status = GroupStatus::Failed;
+            g.error = Some(format!("{e:#}"));
+        });
+    }
+}
+
 /// Parse a group's results, attach them to its samples and queue both entries for saving.
 fn store_results(app: &AppHandle, group: &BlastGroup, json: String) -> anyhow::Result<()> {
     let parsed = blast::parse_results(&json)?;
@@ -955,4 +1107,21 @@ fn store_results(app: &AppHandle, group: &BlastGroup, json: String) -> anyhow::R
     state.save_signal.notify_one();
     changed(app, "blast");
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn old_saved_defaults_move_to_ten_hits() {
+        // Saved before the location setting existed, with the old default of 100.
+        let old = r#"{"email":"a@b.c","blast":{"maxHits":100,"groupSize":20}}"#;
+        let s = defaults_from_json(old);
+        assert_eq!((s.blast.max_hits, s.email.as_str(), s.blast.location), (10, "a@b.c", BlastLocation::Ncbi));
+        // A value the user chose, or one saved by this version, stays.
+        assert_eq!(defaults_from_json(r#"{"blast":{"maxHits":250}}"#).blast.max_hits, 250);
+        assert_eq!(defaults_from_json(r#"{"blast":{"maxHits":100,"location":"ncbi"}}"#).blast.max_hits, 100);
+        assert_eq!(defaults_from_json("not json").blast.max_hits, 10);
+    }
 }

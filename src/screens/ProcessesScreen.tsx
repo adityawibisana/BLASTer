@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
 import clsx from "clsx";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { AlertTriangle, Check, ChevronDown, ChevronRight, ExternalLink, Loader2, RotateCcw, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, ChevronRight, Cpu, ExternalLink, FileUp, Globe, Loader2, RotateCcw, X } from "lucide-react";
 import { api } from "../api";
 import { useApp } from "../state";
 import { Empty, Modal, PageHeader } from "../components/ui";
@@ -19,6 +19,7 @@ import {
   summary,
   type Stage,
 } from "../lib/processes";
+import { pickAndImportResults } from "../lib/blastImport";
 import type { GroupView } from "../types";
 
 const ncbiPage = (rid: string) => `https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Get&RID=${encodeURIComponent(rid)}`;
@@ -73,10 +74,19 @@ function StageTrack({ g, now }: { g: GroupView; now: number }) {
   const failed = s === "failed";
   // A failed search stopped while NCBI was searching.
   const current: Stage = failed ? "searching" : s;
-  const at = TRACK.findIndex((x) => x.stage === current);
+  // BLAST+ on this computer has no NCBI steps; imported results have no search steps at all.
+  const track =
+    g.source === "local"
+      ? TRACK.filter((x) => x.stage !== "sent" && x.stage !== "downloading").map((x) =>
+          x.stage === "searching" ? { ...x, label: "Searching on this computer" } : x,
+        )
+      : g.source === "file" && s === "done"
+        ? TRACK.filter((x) => x.stage === "queued" || x.stage === "done").map((x) => (x.stage === "done" ? { ...x, label: "Imported" } : x))
+        : TRACK;
+  const at = track.findIndex((x) => x.stage === current);
   return (
     <div className="flex items-center gap-1 text-[11.5px]">
-      {TRACK.map((step, i) => {
+      {track.map((step, i) => {
         const past = i < at || s === "done";
         const here = i === at && s !== "done";
         return (
@@ -104,7 +114,17 @@ function StageTrack({ g, now }: { g: GroupView; now: number }) {
 
 /** "NCBI said still searching at 17:36 · next check in 0:42", with a pulse at each check. */
 function Heartbeat({ g, now }: { g: GroupView; now: number }) {
+  if (g.status === "ready" && g.source === "file") return <div className="text-muted">Results imported from a file</div>;
+  if (g.status === "ready" && g.source === "local") return <div className="text-muted">Searched with BLAST+ on this computer</div>;
   if (g.status !== "submitted") return null;
+  if (g.source === "local") {
+    return (
+      <div className="flex items-center gap-2 text-muted">
+        <Cpu size={13} className="text-accent" />
+        BLAST+ is searching on this computer
+      </div>
+    );
+  }
   if (stage(g) === "downloading") {
     return (
       <div className="flex items-center gap-2 text-muted">
@@ -142,6 +162,9 @@ export default function ProcessesScreen() {
 
   const groups = project.groups;
   const giveUp = project.settings.blast.giveUpHours;
+  const where = project.settings.blast.location ?? "ncbi";
+  const onWebsite = (g: GroupView) => run(() => api.openOnWebsite(g.id));
+  const waitingForYou = where === "website" ? groups.filter((g) => g.status === "pending") : [];
   const s = summary(groups, now);
   const active = groups.find((g) => g.status === "submitted");
   const slow = groups.filter((g) => isSlow(g, now));
@@ -156,13 +179,24 @@ export default function ProcessesScreen() {
     <div className="h-full overflow-auto">
       <PageHeader
         title="Processes"
-        subtitle="BLAST searches sent to NCBI. They run in the background, one group at a time as NCBI asks. Closing the app is safe: they continue next time."
+        subtitle={
+          where === "local"
+            ? "BLAST searches, one group at a time, with BLAST+ on this computer. Closing the app is safe: an unfinished group starts over next time."
+            : where === "website"
+              ? "BLAST groups. You run each on the NCBI BLAST website and import the downloaded results here."
+              : "BLAST searches sent to NCBI. They run in the background, one group at a time as NCBI asks. Closing the app is safe: they continue next time."
+        }
         actions={
-          project.blastRunning && (
-            <button className="btn" onClick={() => api.cancelBlast()}>
-              Cancel search
+          <>
+            <button className="btn" title="Results downloaded from the NCBI BLAST website, or written by BLAST+" onClick={() => pickAndImportResults()}>
+              <FileUp size={14} /> Import results file
             </button>
-          )
+            {project.blastRunning && (
+              <button className="btn" onClick={() => api.cancelBlast()}>
+                Cancel search
+              </button>
+            )}
+          </>
         }
       />
       <div className="flex flex-col gap-4 px-6 pb-6">
@@ -179,6 +213,8 @@ export default function ProcessesScreen() {
               <div className="font-semibold">
                 {s.open > 0 && project.blastRunning
                   ? `Running · ${s.open} group${s.open > 1 ? "s" : ""} left`
+                  : s.open > 0 && where === "website" && waitingForYou.length === s.open
+                    ? `Waiting for you · ${s.open} group${s.open > 1 ? "s" : ""} to run on the NCBI website`
                   : s.open > 0
                     ? `Paused · ${s.open} group${s.open > 1 ? "s" : ""} left`
                     : s.failed > 0
@@ -198,6 +234,29 @@ export default function ProcessesScreen() {
           </div>
         )}
 
+        {waitingForYou.length > 0 && (
+          <div className="flex items-start gap-3 rounded-[10px] border border-accent bg-accent-soft/40 p-4">
+            <Globe size={18} className="mt-0.5 shrink-0 text-accent" />
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <div className="font-semibold">
+                {waitingForYou.length} group{waitingForYou.length > 1 ? "s" : ""} to run on the NCBI website
+              </div>
+              <ol className="m-0 flex list-decimal flex-col gap-0.5 pl-5">
+                <li>
+                  Click <b>NCBI website</b> on a group. The NCBI BLAST page opens with its sequences and settings filled in; click{" "}
+                  <b>BLAST</b> there.
+                </li>
+                <li>
+                  When it finishes, choose <b>Download All → Single-file JSON</b> (XML works too).
+                </li>
+                <li>
+                  Click <b>Import results file</b> here and pick the downloaded file. The results attach to the samples by name.
+                </li>
+              </ol>
+            </div>
+          </div>
+        )}
+
         {slow.map((g) => {
           const end = deadline(g, giveUp);
           return (
@@ -208,7 +267,9 @@ export default function ProcessesScreen() {
                   NCBI is taking longer than usual for group {g.id} ({runTimeText(runTime(g, now) ?? 0)})
                 </div>
                 <div>
-                  This is NCBI's queue, not your computer. A group usually takes 1–10 minutes; NCBI is busy right now.
+                  This is NCBI's queue, not your computer. A group usually takes 1–10 minutes. NCBI limits how much BLAST each
+                  internet connection (IP address) can use, so searches slow down for large batches, and on a shared network such as
+                  a lab or campus, where everyone's searches count against the same limit.
                   {groups.some((x) => x.status === "pending") && " The groups after it wait, because NCBI allows one search at a time."}{" "}
                   {end && (
                     <>
@@ -217,7 +278,17 @@ export default function ProcessesScreen() {
                     </>
                   )}
                 </div>
-                <div className="mt-1 flex gap-2">
+                <div>
+                  To get results sooner: run this group on the NCBI website and import the results file, or run BLAST on this
+                  computer (Settings → BLAST). Fewer max hits (now {project.settings.blast.maxHits}) also make each search lighter.
+                </div>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <button className="btn btn-sm" onClick={() => onWebsite(g)}>
+                    <Globe size={13} /> Open on NCBI website
+                  </button>
+                  <button className="btn btn-sm" onClick={() => go("settings")}>
+                    <Cpu size={13} /> Set up this computer
+                  </button>
                   <button className="btn btn-sm" onClick={() => setResend(g)}>
                     <RotateCcw size={13} /> Send again
                   </button>
@@ -264,14 +335,25 @@ export default function ProcessesScreen() {
                       <StageTrack g={g} now={now} />
                       <Heartbeat g={g} now={now} />
                       {g.status === "pending" && project.blastRunning && active && (
-                        <div className="text-muted">Waits for group {active.id}; NCBI allows one search at a time.</div>
+                        <div className="text-muted">
+                          Waits for group {active.id};{" "}
+                          {active.source === "local" ? "BLAST+ runs one group at a time." : "NCBI allows one search at a time."}
+                        </div>
+                      )}
+                      {g.status === "pending" && where === "website" && (
+                        <div className="text-muted">Open it on the NCBI website, then import the downloaded results.</div>
                       )}
                       {g.error && <div className={clsx("truncate", t === "bad" ? "text-bad" : "text-warn")} title={g.error}>{g.error}</div>}
                     </div>
                     <div className={clsx("tabular", t === "slow" ? "font-semibold text-warn" : "text-muted")}>
                       {rt != null ? runTimeText(rt) : "–"}
                     </div>
-                    <div className="flex justify-end gap-1.5">
+                    <div className="flex flex-wrap justify-end gap-1.5">
+                      {g.status !== "ready" && g.source !== "local" && (where === "website" || g.status !== "pending") && (
+                        <button className="btn btn-sm" title="Open the NCBI BLAST website with this group's sequences filled in" onClick={() => onWebsite(g)}>
+                          <Globe size={13} /> NCBI website
+                        </button>
+                      )}
                       {g.rid && g.status === "submitted" && (
                         <button className="btn btn-sm" title="Open NCBI's own page for this search" onClick={() => openUrl(ncbiPage(g.rid!))}>
                           <ExternalLink size={13} /> NCBI
@@ -337,7 +419,14 @@ export default function ProcessesScreen() {
                 again starts a new search and the wait starts over; the current one is dropped.
               </>
             ) : (
-              <>The {resend.sampleIds.length} samples in this group have no results. They will be sent to NCBI again as a new search.</>
+              <>
+                The {resend.sampleIds.length} samples in this group have no results.{" "}
+                {where === "local"
+                  ? "They will be searched again with BLAST+ on this computer."
+                  : where === "website"
+                    ? "The group goes back to the list, to run on the NCBI website."
+                    : "They will be sent to NCBI again as a new search."}
+              </>
             )}
           </p>
         )}

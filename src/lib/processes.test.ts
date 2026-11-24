@@ -17,6 +17,7 @@ const g = (over: Partial<GroupView>): GroupView => ({
   rtoeSecs: 30,
   lastCheckedAt: null,
   lastCheck: null,
+  source: "ncbi",
   ...over,
 });
 
@@ -34,6 +35,15 @@ describe("processes", () => {
     expect(isSlow(g({}), T0 + 14 * 60_000)).toBe(false);
     expect(isSlow(g({}), T0 + 16 * 60_000)).toBe(true);
     expect(isSlow(g({ status: "ready", finishedAt: iso(T0 + 3_600_000) }), T0 + 7_200_000)).toBe(false);
+  });
+
+  it("treats a search on this computer as running, never slow at NCBI", () => {
+    const local = g({ source: "local", rid: null, rtoeSecs: null });
+    expect(stage(local)).toBe("searching");
+    expect(isSlow(local, T0 + 60 * 60_000)).toBe(false);
+    expect(nextCheck(local)).toBeNull();
+    expect(deadline(local, 2)).toBeNull();
+    expect(canResend(local)).toBe(true);
   });
 
   it("gives up at the setting, kept within 0.5–24 h", () => {
@@ -69,9 +79,19 @@ describe("processes", () => {
 
   it("summarises the batch", () => {
     const s = summary(
-      [g({ status: "ready", sampleIds: ["a", "b", "c"] }), g({}), g({ status: "pending" }), g({ status: "failed" })],
+      [
+        g({ status: "ready", sampleIds: ["a", "b", "c"] }),
+        g({ sampleIds: ["d", "e"] }),
+        g({ status: "pending", sampleIds: ["f", "g"] }),
+        g({ status: "failed", sampleIds: ["h", "i"] }),
+      ],
       T0 + 20 * 60_000,
     );
     expect(s).toEqual({ total: 4, done: 1, failed: 1, open: 2, slow: true, samplesTotal: 9, samplesDone: 3 });
+  });
+
+  it("counts a sample searched twice once", () => {
+    const s = summary([g({ status: "ready", sampleIds: ["a", "b"] }), g({ status: "ready", sampleIds: ["a", "b"] })], T0);
+    expect([s.samplesDone, s.samplesTotal]).toEqual([2, 2]);
   });
 });

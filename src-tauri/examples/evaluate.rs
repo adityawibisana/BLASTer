@@ -204,6 +204,7 @@ async fn blast_all(h: &mut ProjectHandle, cache: &PathBuf, no_submit: bool) -> a
             error: None,
             last_checked_at: None,
             last_check: None,
+            source: Default::default(),
         })
         .collect();
     h.project.blast.groups = groups.clone();

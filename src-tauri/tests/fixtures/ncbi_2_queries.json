@@ -1,0 +1,290 @@
+{
+"BlastOutput2": [
+{
+    "report": {
+      "program": "blastn",
+      "version": "BLASTN 2.17.0+",
+      "reference": "Zheng Zhang, Scott Schwartz, Lukas Wagner, and Webb Miller (2000), \"A greedy algorithm for aligning DNA sequences\", J Comput Biol 2000; 7(1-2):203-14.",
+      "search_target": {
+        "db": "core_nt"
+      },
+      "params": {
+        "expect": 10,
+        "sc_match": 1,
+        "sc_mismatch": -2,
+        "gap_open": 0,
+        "gap_extend": 0,
+        "filter": "L;m;"
+      },
+      "results": {
+        "search": {
+          "query_id": "Query_4705944",
+          "query_title": "Achl_ACHLO006-09_1_F",
+          "query_len": 461,
+          "hits": [
+            {
+              "num": 1,
+              "description": [
+                {
+                  "id": "gi|300875876|gb|HM417895.1|",
+                  "accession": "HM417895",
+                  "title": "Allolobophora chlorotica voucher AC1 cytochrome oxidase subunit 1 (COI) gene, partial cds; mitochondrial",
+                  "taxid": 302034,
+                  "sciname": "Allolobophora chlorotica"
+                },
+                {
+                  "id": "gi|300875878|gb|HM417896.1|",
+                  "accession": "HM417896",
+                  "title": "Allolobophora chlorotica voucher AC2 cytochrome oxidase subunit 1 (COI) gene, partial cds; mitochondrial",
+                  "taxid": 302034,
+                  "sciname": "Allolobophora chlorotica"
+                }
+              ],
+              "len": 658,
+              "hsps": [
+                {
+                  "num": 1,
+                  "bit_score": 852.426,
+                  "score": 461,
+                  "evalue": 0,
+                  "identity": 461,
+                  "query_from": 1,
+                  "query_to": 461,
+                  "query_strand": "Plus",
+                  "hit_from": 17,
+                  "hit_to": 477,
+                  "hit_strand": "Plus",
+                  "align_len": 461,
+                  "gaps": 0,
+                  "qseq": "CTGGGCGTCTGAGCAGGAATGGTTGGAGCCGGTATAAGACTTCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCACGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTCTAGGGGCTATTAATTTTATCACCACAGTTATTAATATGCGTTGAAGAGG",
+                  "hseq": "CTGGGCGTCTGAGCAGGAATGGTTGGAGCCGGTATAAGACTTCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCACGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTCTAGGGGCTATTAATTTTATCACCACAGTTATTAATATGCGTTGAAGAGG",
+                  "midline": "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+                }
+              ]
+            },
+            {
+              "num": 2,
+              "description": [
+                {
+                  "id": "gi|164511713|emb|AM774234.1|",
+                  "accession": "AM774234",
+                  "title": "Allolobophora chlorotica mitochondrial partial coi gene for cytochrome oxidase subunit I, haplotype 1",
+                  "taxid": 302034,
+                  "sciname": "Allolobophora chlorotica"
+                }
+              ],
+              "len": 582,
+              "hsps": [
+                {
+                  "num": 1,
+                  "bit_score": 771.173,
+                  "score": 417,
+                  "evalue": 0,
+                  "identity": 433,
+                  "query_from": 18,
+                  "query_to": 458,
+                  "query_strand": "Plus",
+                  "hit_from": 1,
+                  "hit_to": 441,
+                  "hit_strand": "Plus",
+                  "align_len": 441,
+                  "gaps": 0,
+                  "qseq": "AATGGTTGGAGCCGGTATAAGACTTCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCACGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTCTAGGGGCTATTAATTTTATCACCACAGTTATTAATATGCGTTGAAG",
+                  "hseq": "AATGGTTGGAGCCGGTATAAGACTCCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTCTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACAGGGTGAACTGTTTATCCGCCCCTAGCAAGAAATCTTGCCCATGCAGGCCCGTCTGTGGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTTTAGGGGCCATTAATTTTATCACCACAGTTATTAATATGCGTTGAAG",
+                  "midline": "|||||||||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| |||||||||||||||||||| |||||||||||||||||||| |||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||| ||||||| ||||||||||||||||||||||||||||||||||||||"
+                }
+              ]
+            },
+            {
+              "num": 3,
+              "description": [
+                {
+                  "id": "gi|387764993|gb|JQ908765.1|",
+                  "accession": "JQ908765",
+                  "title": "Allolobophora chlorotica L4 voucher EW-ECO-0546 cytochrome oxidase subunit 1 (COI) gene, partial cds; mitochondrial",
+                  "taxid": 942593,
+                  "sciname": "Allolobophora chlorotica complex sp. L4"
+                }
+              ],
+              "len": 658,
+              "hsps": [
+                {
+                  "num": 1,
+                  "bit_score": 758.247,
+                  "score": 410,
+                  "evalue": 0,
+                  "identity": 444,
+                  "query_from": 1,
+                  "query_to": 461,
+                  "query_strand": "Plus",
+                  "hit_from": 17,
+                  "hit_to": 477,
+                  "hit_strand": "Plus",
+                  "align_len": 461,
+                  "gaps": 0,
+                  "qseq": "CTGGGCGTCTGAGCAGGAATGGTTGGAGCCGGTATAAGACTTCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCACGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTCTAGGGGCTATTAATTTTATCACCACAGTTATTAATATGCGTTGAAGAGG",
+                  "hseq": "CTAGGCGTCTGAGCAGGAATGGTTGGAGCCGGTATAAGACTCCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTCGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCAGTATTCATCGGGGGATTTGGAAACTGACTTCTACCTTTAATACTTGGAGCCCCCGATATAGCATTTCCTCGACTCAACAATATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGAACAGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCATGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCACTTAGCGGGTGCGTCCTCTATTTTAGGGGCTATTAATTTTATCACCACAGTTATTAATATACGTTGAATAGG",
+                  "midline": "|| |||||||||||||||||||||||||||||||||||||| |||||||||||||||||||||||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||| |||||||| ||| |||||||||||||||||||||||||||||||||| |||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| || ||||||||||||||||||||||||||||||||||||||||| |||||||||||||||||||||||||||||||||||||| |||||||||||||| |||||| ||||||||||||||||||||||||||||||||||||| ||||||| |||"
+                }
+              ]
+            }
+          ],
+          "stat": {
+            "db_num": 133279179,
+            "db_len": 1852938696,
+            "hsp_len": 0,
+            "eff_space": 0,
+            "kappa": 0.46,
+            "lambda": 1.28,
+            "entropy": 0.85
+          }
+        }
+      }
+    }
+  }
+,
+{
+    "report": {
+      "program": "blastn",
+      "version": "BLASTN 2.17.0+",
+      "reference": "Zheng Zhang, Scott Schwartz, Lukas Wagner, and Webb Miller (2000), \"A greedy algorithm for aligning DNA sequences\", J Comput Biol 2000; 7(1-2):203-14.",
+      "search_target": {
+        "db": "core_nt"
+      },
+      "params": {
+        "expect": 10,
+        "sc_match": 1,
+        "sc_mismatch": -2,
+        "gap_open": 0,
+        "gap_extend": 0,
+        "filter": "L;m;"
+      },
+      "results": {
+        "search": {
+          "query_id": "Query_4705945",
+          "query_title": "Achl_ACHLO007-09_1_F",
+          "query_len": 654,
+          "hits": [
+            {
+              "num": 1,
+              "description": [
+                {
+                  "id": "gi|300875876|gb|HM417895.1|",
+                  "accession": "HM417895",
+                  "title": "Allolobophora chlorotica voucher AC1 cytochrome oxidase subunit 1 (COI) gene, partial cds; mitochondrial",
+                  "taxid": 302034,
+                  "sciname": "Allolobophora chlorotica"
+                },
+                {
+                  "id": "gi|300875878|gb|HM417896.1|",
+                  "accession": "HM417896",
+                  "title": "Allolobophora chlorotica voucher AC2 cytochrome oxidase subunit 1 (COI) gene, partial cds; mitochondrial",
+                  "taxid": 302034,
+                  "sciname": "Allolobophora chlorotica"
+                }
+              ],
+              "len": 658,
+              "hsps": [
+                {
+                  "num": 1,
+                  "bit_score": 1170.05,
+                  "score": 633,
+                  "evalue": 0,
+                  "identity": 633,
+                  "query_from": 1,
+                  "query_to": 633,
+                  "query_strand": "Plus",
+                  "hit_from": 26,
+                  "hit_to": 658,
+                  "hit_strand": "Plus",
+                  "align_len": 633,
+                  "gaps": 0,
+                  "qseq": "TGAGCAGGAATGGTTGGAGCCGGTATAAGACTTCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCACGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTCTAGGGGCTATTAATTTTATCACCACAGTTATTAATATGCGTTGAAGAGGATTACGTCTTGAACGAATTCCCCTGTTTGTCTGAGCTGTGCTAATTACAGTTGTTCTTCTACTTCTATCTTTACCAGTGCTAGCAGGTGCCATTACCATACTTCTTACCGACCGAAACCTCAATACTTCATTCTTTGATCCTGCCGGTGGTGGAGACCCCATCCTCTACCAACACTTATTC",
+                  "hseq": "TGAGCAGGAATGGTTGGAGCCGGTATAAGACTTCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCACGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTCTAGGGGCTATTAATTTTATCACCACAGTTATTAATATGCGTTGAAGAGGATTACGTCTTGAACGAATTCCCCTGTTTGTCTGAGCTGTGCTAATTACAGTTGTTCTTCTACTTCTATCTTTACCAGTGCTAGCAGGTGCCATTACCATACTTCTTACCGACCGAAACCTCAATACTTCATTCTTTGATCCTGCCGGTGGTGGAGACCCCATCCTCTACCAACACTTATTC",
+                  "midline": "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+                }
+              ]
+            },
+            {
+              "num": 2,
+              "description": [
+                {
+                  "id": "gi|564113105|gb|KC569720.1|",
+                  "accession": "KC569720",
+                  "title": "Allolobophora chlorotica voucher Acy225 cytochrome oxidase subunit 1 (COI) gene, partial cds; mitochondrial",
+                  "taxid": 302034,
+                  "sciname": "Allolobophora chlorotica"
+                }
+              ],
+              "len": 676,
+              "hsps": [
+                {
+                  "num": 1,
+                  "bit_score": 1020.47,
+                  "score": 552,
+                  "evalue": 0,
+                  "identity": 618,
+                  "query_from": 1,
+                  "query_to": 651,
+                  "query_strand": "Plus",
+                  "hit_from": 26,
+                  "hit_to": 676,
+                  "hit_strand": "Plus",
+                  "align_len": 651,
+                  "gaps": 0,
+                  "qseq": "TGAGCAGGAATGGTTGGAGCCGGTATAAGACTTCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCACGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTCTAGGGGCTATTAATTTTATCACCACAGTTATTAATATGCGTTGAAGAGGATTACGTCTTGAACGAATTCCCCTGTTTGTCTGAGCTGTGCTAATTACAGTTGTTCTTCTACTTCTATCTTTACCAGTGCTAGCAGGTGCCATTACCATACTTCTTACCGACCGAAACCTCAATACTTCATTCTTTGATCCTGCCGGTGGTGGAGACCCCATCCTCTACCAACACTTATTCTGATTTTTTGGTCACCCT",
+                  "hseq": "TGAGCAGGAATGGTTGGAGCCGGTATAAGACTCCTAATTCGAATCGAGCTAAGACAACCGGGAGCATTTCTGGGCAGAGACCAACTATATAACACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTTGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAATAACATGAGATTCTGACTTCTTCCCCCATCATTGATCCTTTTAGTATCCTCCGCGGCGGTAGAAAAAGGCGCCGGTACAGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCATGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTCCATTTGGCAGGTGCGTCTTCTATTTTAGGGGCTATTAATTTTATCACCACAGTTATTAATATACGTTGAAGAGGCTTACGTCTTGAACGAATTCCCTTGTTTGTCTGAGCCGTACTAATTACAGTTGTTCTTCTACTTCTATCTTTACCAGTGCTAGCGGGTGCCATTACTATACTTCTCACTGACCGAAACCTTAATACTTCATTCTTTGACCCTGCTGGTGGTGGAGACCCCATCCTCTACCAACATCTATTCTGATTTTTTGGTCACCCT",
+                  "midline": "|||||||||||||||||||||||||||||||| |||||||||||||||||||||||||| ||||| || |||||||||||||||||||| || |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||| |||||||||||| ||||||||||||| ||||| |||||||||||||||||||| ||||| ||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||||||||||||||||||||| ||||| || ||||||||||||||| ||||||||||||||||||||||||||||||||||||| ||||||||||| ||||||||||||||||||||| ||||||||||||| || |||||||||||||||||||||||||||||||||||||||||||| ||||||||||| |||||||| || ||||||||||| ||||||||||||||||| ||||| |||||||||||||||||||||||||||||  |||||||||||||||||||||||"
+                }
+              ]
+            },
+            {
+              "num": 3,
+              "description": [
+                {
+                  "id": "gi|377553097|gb|JN869869.1|",
+                  "accession": "JN869869",
+                  "title": "Allolobophora chlorotica voucher 0101 cytochrome c oxidase subunit I (COI) gene, partial cds; mitochondrial",
+                  "taxid": 302034,
+                  "sciname": "Allolobophora chlorotica"
+                }
+              ],
+              "len": 658,
+              "hsps": [
+                {
+                  "num": 1,
+                  "bit_score": 1014.93,
+                  "score": 549,
+                  "evalue": 0,
+                  "identity": 605,
+                  "query_from": 1,
+                  "query_to": 633,
+                  "query_strand": "Plus",
+                  "hit_from": 26,
+                  "hit_to": 658,
+                  "hit_strand": "Plus",
+                  "align_len": 633,
+                  "gaps": 0,
+                  "qseq": "TGAGCAGGAATGGTTGGAGCCGGTATAAGACTTCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCACGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTCTAGGGGCTATTAATTTTATCACCACAGTTATTAATATGCGTTGAAGAGGATTACGTCTTGAACGAATTCCCCTGTTTGTCTGAGCTGTGCTAATTACAGTTGTTCTTCTACTTCTATCTTTACCAGTGCTAGCAGGTGCCATTACCATACTTCTTACCGACCGAAACCTCAATACTTCATTCTTTGATCCTGCCGGTGGTGGAGACCCCATCCTCTACCAACACTTATTC",
+                  "hseq": "TGAGCAGGAATGGTTGGAGCCGGTATAAGACTCCTAATTCGAATCGAGCTAAGACAACCGGGAGCATTTCTGGGCAGAGACCAACTATATAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTTGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAATAACATGAGATTCTGACTTCTTCCTCCATCATTGATCCTTTTAGTATCCTCCGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCATGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTGGCAGGTGCGTCTTCTATTTTAGGGGCTATTAATTTTATCACCACAGTTATTAATATACGTTGAAGAGGCTTACGTCTTGAACGAATTCCCTTGTTTGTTTGAGCCGTACTAATTACAGTTGTTCTTCTACTTCTATCTTTACCAGTGCTAGCGGGTGCCATTACTATACTTCTTACTGACCGAAACCTCAATACTTCATTCTTTGACCCTGCCGGTGGTGGAGACCCCATCCTCTACCAACATCTATTC",
+                  "midline": "|||||||||||||||||||||||||||||||| |||||||||||||||||||||||||| ||||| || |||||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||| ||||| |||||| ||||||||||||| ||||| |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||| || ||||||||||||||| ||||||||||||||||||||||||||||||||||||| ||||||||||| ||||||||||||||||||||| ||||||| ||||| || |||||||||||||||||||||||||||||||||||||||||||| ||||||||||| ||||||||||| ||||||||||||||||||||||||||||| |||||||||||||||||||||||||||||||||||  |||||"
+                }
+              ]
+            }
+          ],
+          "stat": {
+            "db_num": 133279179,
+            "db_len": 1852938696,
+            "hsp_len": 0,
+            "eff_space": 0,
+            "kappa": 0.46,
+            "lambda": 1.28,
+            "entropy": 0.85
+          }
+        }
+      }
+    }
+  }
+]
+}
+

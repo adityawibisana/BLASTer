@@ -15,12 +15,27 @@ pub enum PrimerMode {
     None,
 }
 
+/// Where BLAST searches run.
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum BlastLocation {
+    /// The app sends each group to NCBI's BLAST service and fetches the results.
+    #[default]
+    Ncbi,
+    /// The user runs each group on the NCBI BLAST website and imports the results file.
+    Website,
+    /// BLAST+ (`blastn`) on this computer, against a local database.
+    Local,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", default)]
 pub struct BlastSettings {
     pub program: String,
     pub database: String,
     pub megablast: bool,
+    /// Hits kept per query. NCBI limits the BLAST compute per IP address; fewer hits
+    /// make each search cheaper and its results smaller.
     pub max_hits: u32,
     pub organism: String,
     pub exclude_models: bool,
@@ -28,7 +43,15 @@ pub struct BlastSettings {
     pub group_size: usize,
     /// A search NCBI still reports as waiting after this many hours is given up.
     pub give_up_hours: f64,
+    pub location: BlastLocation,
+    /// `blastn` program for [`BlastLocation::Local`]; empty means `blastn` on the PATH.
+    pub blastn_path: String,
+    /// Local BLAST database (path and name, as for `blastn -db`).
+    pub local_db: String,
 }
+
+/// Hits kept per query by default, as the Geneious guide on slow NCBI searches suggests.
+pub const DEFAULT_MAX_HITS: u32 = 10;
 
 impl Default for BlastSettings {
     fn default() -> Self {
@@ -36,12 +59,15 @@ impl Default for BlastSettings {
             program: "blastn".into(),
             database: "core_nt".into(),
             megablast: true,
-            max_hits: 100,
+            max_hits: DEFAULT_MAX_HITS,
             organism: String::new(),
             exclude_models: false,
             exclude_uncultured: false,
             group_size: 20,
             give_up_hours: 2.0,
+            location: BlastLocation::Ncbi,
+            blastn_path: String::new(),
+            local_db: String::new(),
         }
     }
 }
@@ -277,6 +303,21 @@ pub struct BlastGroup {
     pub last_checked_at: Option<String>,
     #[serde(default)]
     pub last_check: Option<String>,
+    /// Where the group's search runs or its results came from.
+    #[serde(default)]
+    pub source: GroupSource,
+}
+
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum GroupSource {
+    /// Sent to NCBI's BLAST service by the app.
+    #[default]
+    Ncbi,
+    /// Run with BLAST+ on this computer.
+    Local,
+    /// Results imported from a file (e.g. downloaded from the NCBI BLAST website).
+    File,
 }
 
 impl BlastGroup {
@@ -382,6 +423,7 @@ mod tests {
             error: Some("NCBI did not finish".into()),
             last_checked_at: Some("2026-11-24T17:36:00+07:00".into()),
             last_check: Some("WAITING".into()),
+            source: GroupSource::Ncbi,
         }
     }
 

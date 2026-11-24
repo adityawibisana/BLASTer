@@ -41,7 +41,7 @@ Screenshots use the example data in `samples/`: `COI_20_sequences.zip` (20 mosqu
 
 ![Trim / QC screen: chromatogram with trim limits and quality bars](screenshots/trim-qc.png)
 
-**BLAST.** Eligible samples go to NCBI's online BLAST in groups, within NCBI's usage limits. Progress is shown per group, and a later run can search only new or changed samples.
+**BLAST.** Eligible samples go to NCBI's online BLAST in groups, within NCBI's usage limits. Progress is shown per group, and a later run can search only new or changed samples. When NCBI is slow, groups can instead run on the NCBI BLAST website (results imported from the downloaded file) or with BLAST+ on this computer.
 
 ![BLAST screen: search groups, progress and search settings](screenshots/blast.png)
 
@@ -303,9 +303,17 @@ GGAAATGATCAAATTTATAATGTAATTGTTACTGCTCATGCTTTTATTATAATTTTTTTT
 ...
 ```
 
-### 7. BLAST (online, NCBI)
+### 7. BLAST
 
-Only the online NCBI service is used for now. There is no local BLAST+.
+Searches run in one of three places (*Where to search*, on the BLAST screen and in Settings):
+
+| Where | Who sends the search | Results |
+|-------|----------------------|---------|
+| **NCBI online** (default) | The app, through NCBI's BLAST URL API, as described below | Fetched by the app |
+| **NCBI website** | The user: *NCBI website* on a group opens the NCBI BLAST page with its sequences and settings filled in | *Download All → Single-file JSON* (or XML), then **Import results file** |
+| **This computer** | The app runs BLAST+ `blastn` against a local database | Read from `blastn -outfmt 15` |
+
+The NCBI online search:
 
 The search uses the same settings as the NCBI web form (`references/IMG_20261106_191917.jpg`):
 
@@ -314,7 +322,7 @@ The search uses the same settings as the NCBI web form (`references/IMG_20261106
 | Program      | `blastn` (Standard Nucleotide BLAST)          |
 | Database     | `core_nt` (Core nucleotide database)          |
 | Optimize for | Highly similar sequences (`megablast`)        |
-| Max hits     | 100 per query                                 |
+| Max hits     | 10 per query (adjustable)                     |
 | Optional     | Organism filter, exclude models (XM/XP), exclude uncultured/environmental samples |
 
 Searches go through NCBI's BLAST URL API (`https://blast.ncbi.nlm.nih.gov/Blast.cgi`):
@@ -343,6 +351,14 @@ Results expire on NCBI about **24–36 hours** after submission. The results pag
 - **Resuming:** every RID and every finished group is saved in the project straight away. If the app or PC is closed, the next start resumes from the first unfinished group. Finished groups are never resent.
 - **When a group fails:** only that group is retried. The rest of the batch continues.
 - **Off-peak runs:** for batches above 100 samples, the app suggests NCBI's off-peak hours (weekends, or 9 pm–5 am US Eastern time, which is 9 am–5 pm in Indonesia, WIB).
+
+**When NCBI is slow.** NCBI limits how much BLAST compute one IP address can use, so searches slow down for large batches, and on a shared network (a lab or campus), where everyone's searches count against the same limit ([Geneious: Slow NCBI BLAST searches](https://help.geneious.com/hc/en-us/articles/26244155736852-Slow-NCBI-BLAST-searches)). The app follows that guide:
+
+- **Fewer hits:** 10 hits per query by default (it was 100), as the guide suggests. Ten are usually enough to name a species (to confirm against the lab's Geneious results, #8) and make each search lighter for NCBI and smaller to download. Saved defaults that still had the old default of 100 move to 10; existing projects keep their value.
+- **NCBI website:** the website takes the same sequences and settings. The app writes a small local page that posts the NCBI form (a query is too long for a URL) and opens it in the browser. The database is left at the website's default (`core_nt`), because the website ignores a database sent with the form; for another database, the page says which one to choose. Max hits rounds up to the values the website offers (10, 50, 100, 250, 500, 1000, 5000).
+- **Import results file:** accepts the website's single-file JSON, XML, single-file XML2 and multi-file JSON zip, and BLAST+ JSON. Every format gives the same hit table (`tests/results_import.rs`, one real NCBI search in all three formats); legacy XML has no species names, so the species comes from the hit title. Queries are matched to samples by ID, the first word of the FASTA header. A sample whose sequence changed since (its length differs) is left out and named. A group still waiting or not finished whose samples are all in the file takes the results; other samples go into a new group, and leave unsent groups so they are not searched twice.
+- **This computer:** BLAST+ (`blastn`, free from [NCBI](https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/)) against a nucleotide database, for example one made with `makeblastdb -in coi_refs.fasta -dbtype nucl -out coi_refs`. Settings has the `blastn` path (empty: on the PATH), the database (pick any of its files), and **Test BLAST+**. The organism and exclusion filters apply to NCBI searches only. `blastn` runs inside the database folder with only the database name, because BLAST+ reads spaces in `-db` as a list of databases. A group cut short by closing the app starts over next time.
+- Processes explains the per-IP limit when a group is slow, with **Open on NCBI website** and **Set up this computer**.
 
 **Results go out of date when a sequence changes.** If a sample's sequence changes after BLAST, its results are marked *outdated* everywhere, including exports. This can happen through a dragged trim limit, a different primer, or a changed direction. *Re-run BLAST* resubmits only the changed samples, not the whole batch.
 
@@ -526,7 +542,7 @@ Saving is automatic after every change. *File → Open* and a **recent projects*
    - suggested pairs, to confirm or reject
    - the primer auto-detect summary, to confirm
 2. **Trim / QC:** the chromatogram with primers and trim limits, which can be dragged, plus live % HQ, length, and translation check.
-3. **BLAST:** shows the search settings, then submits the search. Progress shows groups done / remaining and the estimated finish time.
+3. **BLAST:** shows the search settings and *Where to search* (NCBI online / NCBI website / this computer), then submits the search. Progress shows groups done / remaining and the estimated finish time. **Import results file** reads results downloaded from the NCBI website or written by BLAST+.
 4. **Processes:** every BLAST group sent to NCBI, so the user can see what the app is waiting for. The menu entry shows how many groups are left (amber when one is slow, red when some did not finish).
    - a batch progress bar: groups done and samples with results
    - for each group, a stage track (Queued → Sent → NCBI searching → Downloading → Done) with a status icon and the run time
@@ -534,6 +550,9 @@ Saving is automatic after every change. *File → Open* and a **recent projects*
    - a warning when NCBI takes longer than 15 minutes for a group (usually 1–10), saying it is NCBI's queue, why the later groups wait, and when the app gives up
    - **Send again** for a group still waiting or one that did not finish, after a confirmation: a new search replaces the old one
    - **View on NCBI** opens NCBI's own page for the search; clicking a group lists its samples
+   - **NCBI website** opens the NCBI BLAST website with the group's sequences and settings filled in; **Import results file** brings the downloaded results back. With *NCBI website* as the place to search, a box lists the three steps
+   - the slow warning also explains NCBI's per-IP limit and offers the website or this computer
+   - a group searched on this computer shows *Queued → Searching on this computer → Done*; an imported one says so
 5. **Results:**
    - the batch overview
    - for each sample: the summary, hit list, and alignment detail
@@ -545,7 +564,9 @@ Saving is automatic after every change. *File → Open* and a **recent projects*
    - expected length ranges and the ambiguous-base limit
    - primer option (auto-detect / preset / custom / none), primer library, and allowed mismatches
    - optional F/R filename pattern
+   - BLAST: where to search (default NCBI online), and for this computer the `blastn` program, the local database and **Test BLAST+**
    - BLAST queries per submission (default 20)
+   - max hits per sample (default 10)
    - give up on a search NCBI still reports as waiting after (default 2 hours, 0.5–24)
    - Compile: minimum query cover for a hit to count (default 80%)
 8. **Help Us:** the open questions for the lab (which primers were used, and the Geneious reference data). Each has an **Answer** button that opens its GitHub issue ([#7](https://github.com/adityawibisana/BLASTer/issues/7), [#8](https://github.com/adityawibisana/BLASTer/issues/8)) in the browser.
@@ -563,6 +584,8 @@ Problems are shown as clear messages on the affected sample or step. Nothing fai
 | NCBI rejects the request, or reports too many requests | Waits and retries with increasing delays, never faster than NCBI's limits; shows the NCBI message if it keeps failing |
 | NCBI search takes very long | Keeps polling once a minute and shows elapsed time; the user can cancel; the RID is saved so a closed app can continue later. A search NCBI still reports as waiting after **2 hours** (a setting) is given up: its group is marked failed, the rest of the batch continues, and the group can be sent again from **Processes**. After 15 minutes Processes explains the wait and offers to send the group again sooner |
 | RID expired before results were fetched | Offers to resubmit |
+| Imported results file is for other samples, or a sample changed since | Imports what matches; names the queries that match no sample and the samples that changed, which need a new search |
+| BLAST+ or its database is missing | *Test BLAST+* and the search say what is missing (program not found, no database of that name, a database name with spaces); the group is marked failed and can be sent again |
 | NCBI returns no hits for a sample | Shows *No significant similarity found* (as NCBI does) and flags the sample |
 | No email set in Settings | Asks for it before the first BLAST, because NCBI requires it |
 | App closed while a search runs | Asks first. Closing is safe: the project is saved and the search continues the next time the project is opened |
@@ -575,7 +598,6 @@ Problems are shown as clear messages on the affected sample or step. Nothing fai
 **Out of scope** (not planned for now):
 
 - Editing individual base calls. Only trim limits can be changed.
-- Local/offline BLAST (BLAST+) and custom local databases.
 - Markers other than COI, e.g. 16S, ITS, cytb. The primer library, length checks and translation check are COI-specific.
 - Phylogenetic trees, multiple alignment of the batch, and species delimitation.
 - Submitting sequences to GenBank or BOLD.
@@ -654,7 +676,9 @@ Code layout:
 | `src-tauri/src/primers.rs` | Primer library and primer-site search |
 | `src-tauri/src/trim.rs` | Mott trimming, HQ > 70% region, end rule |
 | `src-tauri/src/analysis.rs` | Per-read pipeline: primers, trim, direction, QC flags |
-| `src-tauri/src/blast.rs` | NCBI URL API client and JSON2_S parser |
+| `src-tauri/src/blast.rs` | NCBI URL API client, JSON2_S parser, NCBI website form page |
+| `src-tauri/src/results_file.rs` | Results files (JSON, XML, XML2, zip) to JSON2_S; attaching imported results |
+| `src-tauri/src/local_blast.rs` | BLAST+ `blastn` on this computer |
 | `src-tauri/src/compile.rs` | Closest species per sample, species counts |
 | `src-tauri/src/assembly.rs` | Forward/reverse overlap alignment and consensus |
 | `src-tauri/src/pairs.rs` | Pair suggestions, confirm/unpair/swap, consensus as the sample's sequence |
@@ -666,6 +690,12 @@ Code layout:
 | `src-tauri/tests/` | Tests against the data in `samples/` and a real NCBI response (`tests/fixtures/ncbi_18_samples.json`) |
 
 `src-tauri/examples/live_blast.rs` and `reference_check.rs` submit to the real NCBI service, for manual checks.
+
+`tests/local_blast.rs` runs real BLAST+ when `COI_BLASTN` points to `blastn` (with `makeblastdb` next to it); it is skipped otherwise:
+
+```powershell
+$env:COI_BLASTN = 'C:\Program Files\NCBI\blast-2.17.0+\bin\blastn.exe'; cargo test --test local_blast
+```
 
 `src-tauri/examples/evaluate.rs` runs a batch through the whole pipeline as the app does (import, pairs, QC, BLAST, compile) and prints one row per read and per sample, checked against the directions in the file names and the expected species:
 

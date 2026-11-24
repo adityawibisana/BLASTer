@@ -138,6 +138,71 @@ pub fn entrez_query(s: &BlastSettings) -> Option<String> {
     Some(if q.starts_with("NOT") { format!("all[filter] {q}") } else { q })
 }
 
+/// Max target sequences the NCBI website offers.
+const WEBSITE_MAX_HITS: &[u32] = &[10, 50, 100, 250, 500, 1000, 5000];
+
+fn html_escape(s: &str) -> String {
+    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;")
+}
+
+/// A local page that opens the NCBI BLAST website with `fasta` and the search
+/// settings filled in (it posts the form, since a query is too long for a URL).
+/// The database is left to the website's default (core_nt): the website ignores
+/// it when it is posted. The person starts the search there, then downloads the
+/// results ("Download All", single-file JSON) and imports the file into the app.
+pub fn website_page(s: &BlastSettings, fasta: &str, title: &str) -> String {
+    let hits = WEBSITE_MAX_HITS.iter().copied().find(|&n| n >= s.max_hits).unwrap_or(5000);
+    let mut fields: Vec<(&str, String)> = vec![
+        ("PAGE_TYPE", "BlastSearch".into()),
+        ("PROGRAM", "blastn".into()),
+        ("BLAST_PROGRAMS", if s.megablast { "megaBlast" } else { "blastn" }.into()),
+        ("MAX_NUM_SEQ", hits.to_string()),
+        ("JOB_TITLE", title.into()),
+        ("QUERY", fasta.into()),
+    ];
+    if !s.organism.trim().is_empty() {
+        fields.push(("EQ_MENU", s.organism.trim().into()));
+    }
+    if s.exclude_models {
+        fields.push(("EXCLUDE_MODELS", "on".into()));
+    }
+    if s.exclude_uncultured {
+        fields.push(("EXCLUDE_SEQ_UNCULT", "on".into()));
+    }
+    let inputs: String = fields
+        .iter()
+        .map(|(k, v)| {
+            if *k == "QUERY" {
+                format!("<textarea name=\"QUERY\" hidden>{}</textarea>\n", html_escape(v))
+            } else {
+                format!("<input type=\"hidden\" name=\"{k}\" value=\"{}\">\n", html_escape(v))
+            }
+        })
+        .collect();
+    let db_note = if s.database != "core_nt" {
+        format!("<p><b>Choose the database {} on the NCBI page</b>; it is not filled in for you.</p>", html_escape(&s.database))
+    } else {
+        String::new()
+    };
+    format!(
+        r#"<!doctype html>
+<html><head><meta charset="utf-8"><title>{t} – NCBI BLAST</title>
+<style>body{{font:15px system-ui,sans-serif;max-width:640px;margin:40px auto;padding:0 16px;color:#222}}button{{font:inherit;padding:8px 16px}}</style>
+</head><body>
+<h2>Opening NCBI BLAST for {t}…</h2>
+<p>The sequences and settings are filled in on the NCBI page. Click <b>BLAST</b> there to start the search.</p>
+{db_note}
+<p>When it finishes: <b>Download All → Single-file JSON</b>, then <b>Import results file</b> in the app.</p>
+<form id="f" method="post" action="{BLAST_URL}">
+{inputs}<button type="submit">Open NCBI BLAST</button>
+</form>
+<script>document.getElementById("f").submit();</script>
+</body></html>
+"#,
+        t = html_escape(title)
+    )
+}
+
 pub struct Client {
     http: reqwest::Client,
     base: String,
@@ -473,6 +538,23 @@ mod tests {
         assert_eq!(parse_status(ready), SearchStatus::Ready { hits: true });
         assert_eq!(parse_status("QBlastInfoBegin\n\tStatus=WAITING\nQBlastInfoEnd"), SearchStatus::Waiting);
         assert_eq!(parse_status("QBlastInfoBegin\n\tStatus=UNKNOWN\nQBlastInfoEnd"), SearchStatus::Unknown);
+    }
+
+    #[test]
+    fn website_page_fills_the_ncbi_form() {
+        let mut s = BlastSettings { max_hits: 20, organism: "Culicidae".into(), exclude_uncultured: true, ..Default::default() };
+        let page = website_page(&s, ">s1 <x>\nACGT\n", "group g0001");
+        assert!(page.contains(r#"name="MAX_NUM_SEQ" value="50""#));
+        assert!(page.contains(r#"name="BLAST_PROGRAMS" value="megaBlast""#));
+        assert!(page.contains(r#"name="EQ_MENU" value="Culicidae""#));
+        assert!(page.contains(r#"name="EXCLUDE_SEQ_UNCULT" value="on""#));
+        assert!(!page.contains("EXCLUDE_MODELS"));
+        assert!(page.contains("&gt;s1 &lt;x&gt;\nACGT"));
+        assert!(!page.contains("name=\"DATABASE\"") && !page.contains("Choose the database"));
+        s.database = "nt".into();
+        s.max_hits = 9000;
+        let page = website_page(&s, ">s1\nACGT\n", "g");
+        assert!(page.contains(r#"value="5000""#) && page.contains("Choose the database nt"));
     }
 
     #[test]

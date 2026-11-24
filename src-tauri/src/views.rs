@@ -52,6 +52,7 @@ pub struct GroupView<'a> {
     pub rtoe_secs: Option<u64>,
     pub last_checked_at: &'a Option<String>,
     pub last_check: &'a Option<String>,
+    pub source: GroupSource,
 }
 
 #[derive(Serialize)]
@@ -210,6 +211,7 @@ pub fn project_view(h: &ProjectHandle, blast_running: bool) -> ProjectView<'_> {
                 rtoe_secs: g.rtoe_secs,
                 last_checked_at: &g.last_checked_at,
                 last_check: &g.last_check,
+                source: g.source,
             })
             .collect(),
         blast_running,

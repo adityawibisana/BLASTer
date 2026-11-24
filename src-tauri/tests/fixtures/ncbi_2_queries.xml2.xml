@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<BlastXML2
+    xmlns="http://www.ncbi.nlm.nih.gov"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema-instance"
+    xs:schemaLocation="http://www.ncbi.nlm.nih.gov http://www.ncbi.nlm.nih.gov/data_specs/schema_alt/NCBI_BlastOutput2.xsd"
+>
+<BlastOutput2>
+  <report>
+    <Report>
+      <program>blastn</program>
+      <version>BLASTN 2.17.0+</version>
+      <reference>Zheng Zhang, Scott Schwartz, Lukas Wagner, and Webb Miller (2000), &quot;A greedy algorithm for aligning DNA sequences&quot;, J Comput Biol 2000; 7(1-2):203-14.</reference>
+      <search-target>
+        <Target>
+          <db>core_nt</db>
+        </Target>
+      </search-target>
+      <params>
+        <Parameters>
+          <expect>10</expect>
+          <sc-match>1</sc-match>
+          <sc-mismatch>-2</sc-mismatch>
+          <gap-open>0</gap-open>
+          <gap-extend>0</gap-extend>
+          <filter>L;m;</filter>
+        </Parameters>
+      </params>
+      <results>
+        <Results>
+          <search>
+            <Search>
+              <query-id>Query_4705944</query-id>
+              <query-title>Achl_ACHLO006-09_1_F</query-title>
+              <query-len>461</query-len>
+              <hits>
+                <Hit>
+                  <num>1</num>
+                  <description>
+                    <HitDescr>
+                      <id>gi|300875876|gb|HM417895.1|</id>
+                      <accession>HM417895</accession>
+                      <title>Allolobophora chlorotica voucher AC1 cytochrome oxidase subunit 1 (COI) gene, partial cds; mitochondrial</title>
+                      <taxid>302034</taxid>
+                      <sciname>Allolobophora chlorotica</sciname>
+                    </HitDescr>
+                    <HitDescr>
+                      <id>gi|300875878|gb|HM417896.1|</id>
+                      <accession>HM417896</accession>
+                      <title>Allolobophora chlorotica voucher AC2 cytochrome oxidase subunit 1 (COI) gene, partial cds; mitochondrial</title>
+                      <taxid>302034</taxid>
+                      <sciname>Allolobophora chlorotica</sciname>
+                    </HitDescr>
+                  </description>
+                  <len>658</len>
+                  <hsps>
+                    <Hsp>
+                      <num>1</num>
+                      <bit-score>852.426</bit-score>
+                      <score>461</score>
+                      <evalue>0</evalue>
+                      <identity>461</identity>
+                      <query-from>1</query-from>
+                      <query-to>461</query-to>
+                      <query-strand>Plus</query-strand>
+                      <hit-from>17</hit-from>
+                      <hit-to>477</hit-to>
+                      <hit-strand>Plus</hit-strand>
+                      <align-len>461</align-len>
+                      <gaps>0</gaps>
+                      <qseq>CTGGGCGTCTGAGCAGGAATGGTTGGAGCCGGTATAAGACTTCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCACGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTCTAGGGGCTATTAATTTTATCACCACAGTTATTAATATGCGTTGAAGAGG</qseq>
+                      <hseq>CTGGGCGTCTGAGCAGGAATGGTTGGAGCCGGTATAAGACTTCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCACGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTCTAGGGGCTATTAATTTTATCACCACAGTTATTAATATGCGTTGAAGAGG</hseq>
+                      <midline>|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||</midline>
+                    </Hsp>
+                  </hsps>
+                </Hit>
+                <Hit>
+                  <num>2</num>
+                  <description>
+                    <HitDescr>
+                      <id>gi|164511713|emb|AM774234.1|</id>
+                      <accession>AM774234</accession>
+                      <title>Allolobophora chlorotica mitochondrial partial coi gene for cytochrome oxidase subunit I, haplotype 1</title>
+                      <taxid>302034</taxid>
+                      <sciname>Allolobophora chlorotica</sciname>
+                    </HitDescr>
+                  </description>
+                  <len>582</len>
+                  <hsps>
+                    <Hsp>
+                      <num>1</num>
+                      <bit-score>771.173</bit-score>
+                      <score>417</score>
+                      <evalue>0</evalue>
+                      <identity>433</identity>
+                      <query-from>18</query-from>
+                      <query-to>458</query-to>
+                      <query-strand>Plus</query-strand>
+                      <hit-from>1</hit-from>
+                      <hit-to>441</hit-to>
+                      <hit-strand>Plus</hit-strand>
+                      <align-len>441</align-len>
+                      <gaps>0</gaps>
+                      <qseq>AATGGTTGGAGCCGGTATAAGACTTCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCACGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTCTAGGGGCTATTAATTTTATCACCACAGTTATTAATATGCGTTGAAG</qseq>
+                      <hseq>AATGGTTGGAGCCGGTATAAGACTCCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTCTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACAGGGTGAACTGTTTATCCGCCCCTAGCAAGAAATCTTGCCCATGCAGGCCCGTCTGTGGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTTTAGGGGCCATTAATTTTATCACCACAGTTATTAATATGCGTTGAAG</hseq>
+                      <midline>|||||||||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| |||||||||||||||||||| |||||||||||||||||||| |||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||| ||||||| ||||||||||||||||||||||||||||||||||||||</midline>
+                    </Hsp>
+                  </hsps>
+                </Hit>
+                <Hit>
+                  <num>3</num>
+                  <description>
+                    <HitDescr>
+                      <id>gi|387764993|gb|JQ908765.1|</id>
+                      <accession>JQ908765</accession>
+                      <title>Allolobophora chlorotica L4 voucher EW-ECO-0546 cytochrome oxidase subunit 1 (COI) gene, partial cds; mitochondrial</title>
+                      <taxid>942593</taxid>
+                      <sciname>Allolobophora chlorotica complex sp. L4</sciname>
+                    </HitDescr>
+                  </description>
+                  <len>658</len>
+                  <hsps>
+                    <Hsp>
+                      <num>1</num>
+                      <bit-score>758.247</bit-score>
+                      <score>410</score>
+                      <evalue>0</evalue>
+                      <identity>444</identity>
+                      <query-from>1</query-from>
+                      <query-to>461</query-to>
+                      <query-strand>Plus</query-strand>
+                      <hit-from>17</hit-from>
+                      <hit-to>477</hit-to>
+                      <hit-strand>Plus</hit-strand>
+                      <align-len>461</align-len>
+                      <gaps>0</gaps>
+                      <qseq>CTGGGCGTCTGAGCAGGAATGGTTGGAGCCGGTATAAGACTTCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCACGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTCTAGGGGCTATTAATTTTATCACCACAGTTATTAATATGCGTTGAAGAGG</qseq>
+                      <hseq>CTAGGCGTCTGAGCAGGAATGGTTGGAGCCGGTATAAGACTCCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTCGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCAGTATTCATCGGGGGATTTGGAAACTGACTTCTACCTTTAATACTTGGAGCCCCCGATATAGCATTTCCTCGACTCAACAATATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGAACAGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCATGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCACTTAGCGGGTGCGTCCTCTATTTTAGGGGCTATTAATTTTATCACCACAGTTATTAATATACGTTGAATAGG</hseq>
+                      <midline>|| |||||||||||||||||||||||||||||||||||||| |||||||||||||||||||||||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||| |||||||| ||| |||||||||||||||||||||||||||||||||| |||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| || ||||||||||||||||||||||||||||||||||||||||| |||||||||||||||||||||||||||||||||||||| |||||||||||||| |||||| ||||||||||||||||||||||||||||||||||||| ||||||| |||</midline>
+                    </Hsp>
+                  </hsps>
+                </Hit>
+              </hits>
+              <stat>
+                <Statistics>
+                  <db-num>133279179</db-num>
+                  <db-len>1852938696</db-len>
+                  <hsp-len>0</hsp-len>
+                  <eff-space>0</eff-space>
+                  <kappa>0.46</kappa>
+                  <lambda>1.28</lambda>
+                  <entropy>0.85</entropy>
+                </Statistics>
+              </stat>
+            </Search>
+          </search>
+        </Results>
+      </results>
+    </Report>
+  </report>
+</BlastOutput2>
+
+<BlastOutput2>
+  <report>
+    <Report>
+      <program>blastn</program>
+      <version>BLASTN 2.17.0+</version>
+      <reference>Zheng Zhang, Scott Schwartz, Lukas Wagner, and Webb Miller (2000), &quot;A greedy algorithm for aligning DNA sequences&quot;, J Comput Biol 2000; 7(1-2):203-14.</reference>
+      <search-target>
+        <Target>
+          <db>core_nt</db>
+        </Target>
+      </search-target>
+      <params>
+        <Parameters>
+          <expect>10</expect>
+          <sc-match>1</sc-match>
+          <sc-mismatch>-2</sc-mismatch>
+          <gap-open>0</gap-open>
+          <gap-extend>0</gap-extend>
+          <filter>L;m;</filter>
+        </Parameters>
+      </params>
+      <results>
+        <Results>
+          <search>
+            <Search>
+              <query-id>Query_4705945</query-id>
+              <query-title>Achl_ACHLO007-09_1_F</query-title>
+              <query-len>654</query-len>
+              <hits>
+                <Hit>
+                  <num>1</num>
+                  <description>
+                    <HitDescr>
+                      <id>gi|300875876|gb|HM417895.1|</id>
+                      <accession>HM417895</accession>
+                      <title>Allolobophora chlorotica voucher AC1 cytochrome oxidase subunit 1 (COI) gene, partial cds; mitochondrial</title>
+                      <taxid>302034</taxid>
+                      <sciname>Allolobophora chlorotica</sciname>
+                    </HitDescr>
+                    <HitDescr>
+                      <id>gi|300875878|gb|HM417896.1|</id>
+                      <accession>HM417896</accession>
+                      <title>Allolobophora chlorotica voucher AC2 cytochrome oxidase subunit 1 (COI) gene, partial cds; mitochondrial</title>
+                      <taxid>302034</taxid>
+                      <sciname>Allolobophora chlorotica</sciname>
+                    </HitDescr>
+                  </description>
+                  <len>658</len>
+                  <hsps>
+                    <Hsp>
+                      <num>1</num>
+                      <bit-score>1170.05</bit-score>
+                      <score>633</score>
+                      <evalue>0</evalue>
+                      <identity>633</identity>
+                      <query-from>1</query-from>
+                      <query-to>633</query-to>
+                      <query-strand>Plus</query-strand>
+                      <hit-from>26</hit-from>
+                      <hit-to>658</hit-to>
+                      <hit-strand>Plus</hit-strand>
+                      <align-len>633</align-len>
+                      <gaps>0</gaps>
+                      <qseq>TGAGCAGGAATGGTTGGAGCCGGTATAAGACTTCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCACGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTCTAGGGGCTATTAATTTTATCACCACAGTTATTAATATGCGTTGAAGAGGATTACGTCTTGAACGAATTCCCCTGTTTGTCTGAGCTGTGCTAATTACAGTTGTTCTTCTACTTCTATCTTTACCAGTGCTAGCAGGTGCCATTACCATACTTCTTACCGACCGAAACCTCAATACTTCATTCTTTGATCCTGCCGGTGGTGGAGACCCCATCCTCTACCAACACTTATTC</qseq>
+                      <hseq>TGAGCAGGAATGGTTGGAGCCGGTATAAGACTTCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCACGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTCTAGGGGCTATTAATTTTATCACCACAGTTATTAATATGCGTTGAAGAGGATTACGTCTTGAACGAATTCCCCTGTTTGTCTGAGCTGTGCTAATTACAGTTGTTCTTCTACTTCTATCTTTACCAGTGCTAGCAGGTGCCATTACCATACTTCTTACCGACCGAAACCTCAATACTTCATTCTTTGATCCTGCCGGTGGTGGAGACCCCATCCTCTACCAACACTTATTC</hseq>
+                      <midline>|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||</midline>
+                    </Hsp>
+                  </hsps>
+                </Hit>
+                <Hit>
+                  <num>2</num>
+                  <description>
+                    <HitDescr>
+                      <id>gi|564113105|gb|KC569720.1|</id>
+                      <accession>KC569720</accession>
+                      <title>Allolobophora chlorotica voucher Acy225 cytochrome oxidase subunit 1 (COI) gene, partial cds; mitochondrial</title>
+                      <taxid>302034</taxid>
+                      <sciname>Allolobophora chlorotica</sciname>
+                    </HitDescr>
+                  </description>
+                  <len>676</len>
+                  <hsps>
+                    <Hsp>
+                      <num>1</num>
+                      <bit-score>1020.47</bit-score>
+                      <score>552</score>
+                      <evalue>0</evalue>
+                      <identity>618</identity>
+                      <query-from>1</query-from>
+                      <query-to>651</query-to>
+                      <query-strand>Plus</query-strand>
+                      <hit-from>26</hit-from>
+                      <hit-to>676</hit-to>
+                      <hit-strand>Plus</hit-strand>
+                      <align-len>651</align-len>
+                      <gaps>0</gaps>
+                      <qseq>TGAGCAGGAATGGTTGGAGCCGGTATAAGACTTCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCACGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTCTAGGGGCTATTAATTTTATCACCACAGTTATTAATATGCGTTGAAGAGGATTACGTCTTGAACGAATTCCCCTGTTTGTCTGAGCTGTGCTAATTACAGTTGTTCTTCTACTTCTATCTTTACCAGTGCTAGCAGGTGCCATTACCATACTTCTTACCGACCGAAACCTCAATACTTCATTCTTTGATCCTGCCGGTGGTGGAGACCCCATCCTCTACCAACACTTATTCTGATTTTTTGGTCACCCT</qseq>
+                      <hseq>TGAGCAGGAATGGTTGGAGCCGGTATAAGACTCCTAATTCGAATCGAGCTAAGACAACCGGGAGCATTTCTGGGCAGAGACCAACTATATAACACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTTGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAATAACATGAGATTCTGACTTCTTCCCCCATCATTGATCCTTTTAGTATCCTCCGCGGCGGTAGAAAAAGGCGCCGGTACAGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCATGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTCCATTTGGCAGGTGCGTCTTCTATTTTAGGGGCTATTAATTTTATCACCACAGTTATTAATATACGTTGAAGAGGCTTACGTCTTGAACGAATTCCCTTGTTTGTCTGAGCCGTACTAATTACAGTTGTTCTTCTACTTCTATCTTTACCAGTGCTAGCGGGTGCCATTACTATACTTCTCACTGACCGAAACCTTAATACTTCATTCTTTGACCCTGCTGGTGGTGGAGACCCCATCCTCTACCAACATCTATTCTGATTTTTTGGTCACCCT</hseq>
+                      <midline>|||||||||||||||||||||||||||||||| |||||||||||||||||||||||||| ||||| || |||||||||||||||||||| || |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||| |||||||||||| ||||||||||||| ||||| |||||||||||||||||||| ||||| ||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||||||||||||||||||||| ||||| || ||||||||||||||| ||||||||||||||||||||||||||||||||||||| ||||||||||| ||||||||||||||||||||| ||||||||||||| || |||||||||||||||||||||||||||||||||||||||||||| ||||||||||| |||||||| || ||||||||||| ||||||||||||||||| ||||| |||||||||||||||||||||||||||||  |||||||||||||||||||||||</midline>
+                    </Hsp>
+                  </hsps>
+                </Hit>
+                <Hit>
+                  <num>3</num>
+                  <description>
+                    <HitDescr>
+                      <id>gi|377553097|gb|JN869869.1|</id>
+                      <accession>JN869869</accession>
+                      <title>Allolobophora chlorotica voucher 0101 cytochrome c oxidase subunit I (COI) gene, partial cds; mitochondrial</title>
+                      <taxid>302034</taxid>
+                      <sciname>Allolobophora chlorotica</sciname>
+                    </HitDescr>
+                  </description>
+                  <len>658</len>
+                  <hsps>
+                    <Hsp>
+                      <num>1</num>
+                      <bit-score>1014.93</bit-score>
+                      <score>549</score>
+                      <evalue>0</evalue>
+                      <identity>605</identity>
+                      <query-from>1</query-from>
+                      <query-to>633</query-to>
+                      <query-strand>Plus</query-strand>
+                      <hit-from>26</hit-from>
+                      <hit-to>658</hit-to>
+                      <hit-strand>Plus</hit-strand>
+                      <align-len>633</align-len>
+                      <gaps>0</gaps>
+                      <qseq>TGAGCAGGAATGGTTGGAGCCGGTATAAGACTTCTAATTCGAATCGAGCTAAGACAACCAGGAGCGTTCCTGGGCAGAGACCAACTATACAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTCGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAACAACATGAGATTCTGACTACTTCCCCCATCACTGATCCTTTTAGTGTCCTCTGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCACGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTAGCGGGTGCGTCTTCTATTCTAGGGGCTATTAATTTTATCACCACAGTTATTAATATGCGTTGAAGAGGATTACGTCTTGAACGAATTCCCCTGTTTGTCTGAGCTGTGCTAATTACAGTTGTTCTTCTACTTCTATCTTTACCAGTGCTAGCAGGTGCCATTACCATACTTCTTACCGACCGAAACCTCAATACTTCATTCTTTGATCCTGCCGGTGGTGGAGACCCCATCCTCTACCAACACTTATTC</qseq>
+                      <hseq>TGAGCAGGAATGGTTGGAGCCGGTATAAGACTCCTAATTCGAATCGAGCTAAGACAACCGGGAGCATTTCTGGGCAGAGACCAACTATATAATACTATCGTTACTGCACACGCATTTGTAATAATCTTCTTTCTAGTAATGCCTGTATTCATCGGGGGATTTGGAAACTGGCTTTTACCTTTAATACTTGGAGCCCCCGATATAGCATTCCCTCGACTCAATAACATGAGATTCTGACTTCTTCCTCCATCATTGATCCTTTTAGTATCCTCCGCGGCGGTAGAAAAAGGCGCTGGTACGGGGTGAACTGTTTATCCGCCTCTAGCAAGAAATCTTGCCCATGCAGGCCCGTCTGTAGATTTAGCCATCTTTTCCCTTCATTTGGCAGGTGCGTCTTCTATTTTAGGGGCTATTAATTTTATCACCACAGTTATTAATATACGTTGAAGAGGCTTACGTCTTGAACGAATTCCCTTGTTTGTTTGAGCCGTACTAATTACAGTTGTTCTTCTACTTCTATCTTTACCAGTGCTAGCGGGTGCCATTACTATACTTCTTACTGACCGAAACCTCAATACTTCATTCTTTGACCCTGCCGGTGGTGGAGACCCCATCCTCTACCAACATCTATTC</hseq>
+                      <midline>|||||||||||||||||||||||||||||||| |||||||||||||||||||||||||| ||||| || |||||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||| ||||| |||||| ||||||||||||| ||||| |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||| || ||||||||||||||| ||||||||||||||||||||||||||||||||||||| ||||||||||| ||||||||||||||||||||| ||||||| ||||| || |||||||||||||||||||||||||||||||||||||||||||| ||||||||||| ||||||||||| ||||||||||||||||||||||||||||| |||||||||||||||||||||||||||||||||||  |||||</midline>
+                    </Hsp>
+                  </hsps>
+                </Hit>
+              </hits>
+              <stat>
+                <Statistics>
+                  <db-num>133279179</db-num>
+                  <db-len>1852938696</db-len>
+                  <hsp-len>0</hsp-len>
+                  <eff-space>0</eff-space>
+                  <kappa>0.46</kappa>
+                  <lambda>1.28</lambda>
+                  <entropy>0.85</entropy>
+                </Statistics>
+              </stat>
+            </Search>
+          </search>
+        </Results>
+      </results>
+    </Report>
+  </report>
+</BlastOutput2>
+</BlastXML2>
+

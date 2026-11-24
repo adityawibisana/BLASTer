@@ -55,6 +55,24 @@ export interface BlastSettings {
   excludeUncultured: boolean;
   groupSize: number;
   giveUpHours: number;
+  /** ncbi: the app sends searches to NCBI; website: the user runs them on the NCBI website and imports the results; local: BLAST+ on this computer. */
+  location: BlastLocation;
+  blastnPath: string;
+  localDb: string;
+}
+
+export type BlastLocation = "ncbi" | "website" | "local";
+
+/** Where a group's search runs, or its results came from. */
+export type GroupSource = "ncbi" | "local" | "file";
+
+export interface ImportSummary {
+  samples: number;
+  groups: string[];
+  unknown: string[];
+  changed: string[];
+  already: string[];
+  stillMissing: number;
 }
 
 export interface Settings {
@@ -175,6 +193,7 @@ export interface GroupView {
   rtoeSecs: number | null;
   lastCheckedAt: string | null;
   lastCheck: string | null;
+  source: GroupSource;
 }
 
 export interface CompiledRow {

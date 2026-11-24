@@ -22,6 +22,8 @@ export function stage(g: GroupView): Stage {
     case "pending":
       return "queued";
     case "submitted":
+      // BLAST+ on this computer has no NCBI steps: it is searching until done.
+      if (g.source === "local") return "searching";
       if (g.lastCheck === "READY") return "downloading";
       return g.lastCheckedAt ? "searching" : "sent";
     case "ready":
@@ -39,8 +41,9 @@ export function runTime(g: GroupView, now: number): number | null {
   return end == null ? null : Math.max(0, end - start);
 }
 
+/** A search waiting at NCBI for longer than usual (a search on this computer is never "slow at NCBI"). */
 export function isSlow(g: GroupView, now: number): boolean {
-  return g.status === "submitted" && (runTime(g, now) ?? 0) > SLOW_AFTER_MS;
+  return g.status === "submitted" && g.source !== "local" && (runTime(g, now) ?? 0) > SLOW_AFTER_MS;
 }
 
 /** Same limits as the app's backend (0.5–24 h, 2 h when unset). */
@@ -51,13 +54,13 @@ export function giveUpMs(hours: number | undefined): number {
 
 /** When the app gives up on a waiting search. */
 export function deadline(g: GroupView, giveUpHours: number | undefined): number | null {
-  if (g.status !== "submitted" || !g.submittedAt) return null;
+  if (g.status !== "submitted" || !g.submittedAt || g.source === "local") return null;
   return Date.parse(g.submittedAt) + giveUpMs(giveUpHours);
 }
 
 /** When the app next asks NCBI about this search. */
 export function nextCheck(g: GroupView): number | null {
-  if (g.status !== "submitted") return null;
+  if (g.status !== "submitted" || g.source === "local") return null;
   if (g.lastCheckedAt) return Date.parse(g.lastCheckedAt) + POLL_MS;
   if (!g.submittedAt) return null;
   return Date.parse(g.submittedAt) + Math.max(POLL_MS, (g.rtoeSecs ?? 0) * 1000);
@@ -94,7 +97,8 @@ export function summary(groups: GroupView[], now: number) {
     failed: groups.filter((g) => stage(g) === "failed").length,
     open: open.length,
     slow: groups.some((g) => isSlow(g, now)),
-    samplesTotal: groups.reduce((a, g) => a + g.sampleIds.length, 0),
-    samplesDone: groups.filter((g) => g.status === "ready").reduce((a, g) => a + g.sampleIds.length, 0),
+    // Distinct samples: a sample searched again (e.g. after a change) is in more than one group.
+    samplesTotal: new Set(groups.flatMap((g) => g.sampleIds)).size,
+    samplesDone: new Set(groups.filter((g) => g.status === "ready").flatMap((g) => g.sampleIds)).size,
   };
 }
