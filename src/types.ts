@@ -190,6 +190,8 @@ export interface GroupView {
   submittedAt: string | null;
   finishedAt: string | null;
   attempts: number;
+  /** Failed tries since the user last queued the group; the app retries until MAX_TRIES. */
+  failures: number;
   error: string | null;
   rtoeSecs: number | null;
   lastCheckedAt: string | null;

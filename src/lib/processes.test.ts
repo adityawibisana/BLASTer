@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canResend, countdown, deadline, giveUpMs, isSlow, nextCheck, runTime, stage, summary } from "./processes";
+import { canResend, countdown, deadline, failedGroups, giveUpMs, isSlow, nextCheck, retryText, runTime, stage, summary } from "./processes";
 import type { GroupView } from "../types";
 
 const T0 = Date.parse("2026-11-24T16:18:00+07:00");
@@ -13,6 +13,7 @@ const g = (over: Partial<GroupView>): GroupView => ({
   submittedAt: iso(T0),
   finishedAt: null,
   attempts: 1,
+  failures: 0,
   error: null,
   rtoeSecs: 30,
   lastCheckedAt: null,
@@ -51,7 +52,7 @@ describe("processes", () => {
     expect(deadline(g({}), 45)).toBe(T0 + 45 * 60_000);
     expect(giveUpMs(0)).toBe(600_000);
     expect(giveUpMs(5000)).toBe(24 * 3_600_000);
-    expect(giveUpMs(undefined)).toBe(7_200_000);
+    expect(giveUpMs(undefined)).toBe(2_700_000);
     expect(deadline(g({ status: "ready" }), 120)).toBeNull();
   });
 
@@ -61,6 +62,15 @@ describe("processes", () => {
     expect(nextCheck(g({ lastCheckedAt: iso(T0 + 300_000) }))).toBe(T0 + 330_000);
     expect(countdown(42_000)).toBe("0:42");
     expect(countdown(-1)).toBe("now");
+  });
+
+  it("says which automatic try a group is on, and lists groups that stopped failing", () => {
+    expect(retryText(g({}))).toBeNull();
+    expect(retryText(g({ status: "pending", failures: 1 }))).toBe("Retrying · try 2 of 3");
+    expect(retryText(g({ failures: 2 }))).toBe("Retrying · try 3 of 3");
+    expect(retryText(g({ status: "failed", failures: 3 }))).toBeNull();
+    const list = ["pending", "submitted", "ready", "failed", "expired", "cancelled"].map((s, i) => g({ id: `g${i}`, status: s as GroupView["status"] }));
+    expect(failedGroups(list).map((x) => x.status)).toEqual(["failed", "expired"]);
   });
 
   it("run time counts while searching and stops when done", () => {

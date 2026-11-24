@@ -629,6 +629,7 @@ pub fn start_blast(app: AppHandle, state: State<'_, AppState>, only_changed: boo
                 last_checked_at: None,
                 last_check: None,
                 source: Default::default(),
+                failures: 0,
             });
             next += 1;
         }
@@ -680,7 +681,9 @@ pub fn quit_app(app: AppHandle) {
 pub fn resubmit_group(app: AppHandle, state: State<'_, AppState>, id: String) -> CmdResult<()> {
     mutate(&state, |h| {
         let g = h.project.blast.groups.iter_mut().find(|g| g.id == id).ok_or_else(|| anyhow::anyhow!("no group {id}"))?;
-        g.reset_for_resend()
+        g.reset_for_resend()?;
+        g.failures = 0; // the user's own send gets a fresh set of tries
+        Ok(())
     })?;
     spawn_runner(app.clone());
     changed(&app, "blast");
@@ -936,10 +939,7 @@ async fn run_queue(app: &AppHandle) {
                     }
                     Ok(None) => continue,
                     Err(msg) => {
-                        update_group(app, &gid, |g| {
-                            g.status = GroupStatus::Failed;
-                            g.error = Some(msg);
-                        });
+                        fail_group(app, &gid, GroupStatus::Failed, msg);
                         continue;
                     }
                 }
@@ -987,10 +987,7 @@ async fn run_queue(app: &AppHandle) {
             None => continue, // cancelled; the group stays Submitted and can resume later
             Some(Err((status, msg))) => {
                 if still_current(app, &gid, &rid) {
-                    update_group(app, &gid, |g| {
-                        g.status = status;
-                        g.error = Some(msg);
-                    });
+                    fail_group(app, &gid, status, msg);
                 }
                 continue;
             }
@@ -1004,22 +1001,26 @@ async fn run_queue(app: &AppHandle) {
         match fetched {
             Ok(Some(json)) => {
                 if let Err(e) = store_results(app, &group, json) {
-                    update_group(app, &gid, |g| {
-                        g.status = GroupStatus::Failed;
-                        g.error = Some(e.to_string());
-                    });
+                    fail_group(app, &gid, GroupStatus::Failed, e.to_string());
                 }
             }
             Ok(None) => continue,
             Err(msg) => {
                 let status = if msg == "RID_EXPIRED" { GroupStatus::Expired } else { GroupStatus::Failed };
-                update_group(app, &gid, |g| {
-                    g.status = status;
-                    g.error = Some(if msg == "RID_EXPIRED" { "NCBI no longer has this search (expired)".into() } else { msg });
-                });
+                let msg = if msg == "RID_EXPIRED" { "NCBI no longer has this search (expired)".into() } else { msg };
+                fail_group(app, &gid, status, msg);
             }
         }
     }
+}
+
+/// Mark a group's search as failed. It goes back in the queue to be tried again
+/// until it has failed `MAX_TRIES` times, unless searches are sent from the NCBI
+/// website (the app does not send those itself).
+fn fail_group(app: &AppHandle, id: &str, status: GroupStatus, msg: String) {
+    let state = app.state::<AppState>();
+    let can_retry = state.lock().as_ref().is_some_and(|h| h.project.settings.blast.location != BlastLocation::Website);
+    update_group(app, id, |g| g.fail(status, msg, can_retry));
 }
 
 /// Whether the group still waits to be sent (its results were not imported meanwhile).
@@ -1054,10 +1055,7 @@ async fn run_local(app: &AppHandle, group: &BlastGroup, settings: &BlastSettings
     let mut job = match crate::local_blast::Job::start(settings, &group.fasta, &gid) {
         Ok(j) => j,
         Err(e) => {
-            update_group(app, &gid, |g| {
-                g.status = GroupStatus::Failed;
-                g.error = Some(format!("{e:#}"));
-            });
+            fail_group(app, &gid, GroupStatus::Failed, format!("{e:#}"));
             return;
         }
     };
@@ -1091,10 +1089,7 @@ async fn run_local(app: &AppHandle, group: &BlastGroup, settings: &BlastSettings
     drop(job);
     let outcome = result.and_then(|json| store_results(app, group, json));
     if let Err(e) = outcome {
-        update_group(app, &gid, |g| {
-            g.status = GroupStatus::Failed;
-            g.error = Some(format!("{e:#}"));
-        });
+        fail_group(app, &gid, GroupStatus::Failed, format!("{e:#}"));
     }
 }
 

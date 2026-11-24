@@ -46,9 +46,9 @@ export function isSlow(g: GroupView, now: number): boolean {
   return g.status === "submitted" && g.source !== "local" && (runTime(g, now) ?? 0) > SLOW_AFTER_MS;
 }
 
-/** Same limits as the app's backend (10 min – 24 h, 120 min when unset). */
+/** Same limits as the app's backend (10 min – 24 h, 45 min when unset). */
 export function giveUpMs(minutes: number | undefined): number {
-  const m = minutes != null && Number.isFinite(minutes) ? Math.min(1440, Math.max(10, Math.round(minutes))) : 120;
+  const m = minutes != null && Number.isFinite(minutes) ? Math.min(1440, Math.max(10, Math.round(minutes))) : 45;
   return m * 60_000;
 }
 
@@ -65,6 +65,18 @@ export function nextCheck(g: GroupView): number | null {
   if (!g.submittedAt) return null;
   return Date.parse(g.submittedAt) + Math.max(POLL_MS, (g.rtoeSecs ?? 0) * 1000);
 }
+
+/** How many times the app tries a group before it stops (same as the backend). */
+export const MAX_TRIES = 3;
+
+/** A group the app is trying again by itself after a failure: "try 2 of 3". */
+export function retryText(g: GroupView): string | null {
+  if (!g.failures || !["pending", "submitted"].includes(g.status)) return null;
+  return `Retrying · try ${Math.min(g.failures + 1, MAX_TRIES)} of ${MAX_TRIES}`;
+}
+
+/** Groups that failed and are no longer retried, for the Failed list. */
+export const failedGroups = (groups: GroupView[]) => groups.filter((g) => g.status === "failed" || g.status === "expired");
 
 /** A group whose search can be sent to NCBI again. */
 export const canResend = (g: GroupView) => ["submitted", "failed", "expired", "cancelled"].includes(g.status);

@@ -10,9 +10,12 @@ import {
   canResend,
   clock,
   countdown,
+  MAX_TRIES,
   deadline,
+  failedGroups,
   isSlow,
   nextCheck,
+  retryText,
   runTime,
   runTimeText,
   stage,
@@ -168,6 +171,7 @@ export default function ProcessesScreen() {
   const s = summary(groups, now);
   const active = groups.find((g) => g.status === "submitted");
   const slow = groups.filter((g) => isSlow(g, now));
+  const failed = failedGroups(groups);
 
   const confirmResend = async () => {
     const g = resend;
@@ -303,6 +307,40 @@ export default function ProcessesScreen() {
           );
         })}
 
+        {failed.length > 0 && (
+          <div className="flex items-start gap-3 rounded-[10px] border border-bad p-4">
+            <X size={18} className="mt-0.5 shrink-0 text-bad" />
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <div className="font-semibold text-bad">
+                Failed · {failed.length} group{failed.length > 1 ? "s" : ""} ({failed.reduce((n, g) => n + g.sampleIds.length, 0)} samples)
+              </div>
+              <div className="text-muted">
+                {where === "website"
+                  ? "These searches did not finish. Send them again, or run them on the NCBI website."
+                  : `The app tried each of these up to ${MAX_TRIES} times and stopped. Send a group again to give it ${MAX_TRIES} more tries.`}
+              </div>
+              <div className="flex flex-col divide-y divide-line/70">
+                {failed.map((g) => (
+                  <div key={g.id} className="flex items-center gap-3 py-1.5">
+                    <span className="tabular w-[110px] shrink-0 font-medium">
+                      {g.id} <span className="label">· {g.sampleIds.length}</span>
+                    </span>
+                    <span className="tabular shrink-0 text-muted">
+                      {g.failures} {g.failures === 1 ? "try" : "tries"}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-bad" title={g.error ?? undefined}>
+                      {g.error ?? (g.status === "expired" ? "NCBI no longer has this search" : "Did not finish")}
+                    </span>
+                    <button className="btn btn-sm shrink-0" onClick={() => setResend(g)}>
+                      <RotateCcw size={13} /> Send again
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {groups.length > 0 && (
           <div className="card overflow-hidden">
             <div className="grid grid-cols-[28px_120px_minmax(0,1fr)_120px_190px] gap-3 border-b border-line bg-panel-2 px-3 py-2 text-[12px] font-semibold text-muted">
@@ -343,6 +381,7 @@ export default function ProcessesScreen() {
                       {g.status === "pending" && where === "website" && (
                         <div className="text-muted">Open it on the NCBI website, then import the downloaded results.</div>
                       )}
+                      {retryText(g) && <div className="font-medium text-warn">{retryText(g)}</div>}
                       {g.error && <div className={clsx("truncate", t === "bad" ? "text-bad" : "text-warn")} title={g.error}>{g.error}</div>}
                     </div>
                     <div className={clsx("tabular", t === "slow" ? "font-semibold text-warn" : "text-muted")}>

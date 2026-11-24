@@ -15,7 +15,7 @@ pub const TOOL: &str = "coi-barcode-blast";
 pub const SUBMIT_INTERVAL: Duration = Duration::from_secs(10);
 /// How often to check whether NCBI has finished a RID.
 pub const POLL_INTERVAL: Duration = Duration::from_secs(30);
-/// A search NCBI still reports as waiting after `give_up_minutes` (a setting, 120 by
+/// A search NCBI still reports as waiting after `give_up_minutes` (a setting, 45 by
 /// default) is given up, so one stuck search does not block the rest of the batch.
 /// Its group can be sent again. The setting is kept within these limits.
 pub const GIVE_UP_MINUTES_MIN: u32 = 10;

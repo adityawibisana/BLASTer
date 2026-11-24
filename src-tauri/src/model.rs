@@ -85,7 +85,7 @@ impl Default for BlastSettings {
             exclude_models: false,
             exclude_uncultured: false,
             group_size: 20,
-            give_up_minutes: 120,
+            give_up_minutes: 45,
             location: BlastLocation::Ncbi,
             blastn_path: String::new(),
             local_db: String::new(),
@@ -327,7 +327,14 @@ pub struct BlastGroup {
     /// Where the group's search runs or its results came from.
     #[serde(default)]
     pub source: GroupSource,
+    /// Failed tries since the group was last queued by the user. The app sends a
+    /// failed group again by itself until this reaches [`MAX_TRIES`].
+    #[serde(default)]
+    pub failures: u32,
 }
+
+/// How many times the app tries a group before it stops and leaves it failed.
+pub const MAX_TRIES: u32 = 3;
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -359,6 +366,19 @@ impl BlastGroup {
         self.last_checked_at = None;
         self.last_check = None;
         Ok(())
+    }
+
+    /// Record that the group's search failed. While it has failed fewer than
+    /// [`MAX_TRIES`] times and `can_retry` is set, it goes back in the queue to be
+    /// sent again; otherwise it stays `status` with `msg` as its error.
+    pub fn fail(&mut self, status: GroupStatus, msg: String, can_retry: bool) {
+        self.failures += 1;
+        self.status = status;
+        if can_retry && self.failures < MAX_TRIES && self.reset_for_resend().is_ok() {
+            self.error = Some(format!("Try {} of {MAX_TRIES} failed: {msg}", self.failures));
+        } else {
+            self.error = Some(msg);
+        }
     }
 }
 
@@ -445,7 +465,29 @@ mod tests {
             last_checked_at: Some("2026-11-24T17:36:00+07:00".into()),
             last_check: Some("WAITING".into()),
             source: GroupSource::Ncbi,
+            failures: 0,
         }
+    }
+
+    #[test]
+    fn a_failed_group_is_tried_three_times_in_all() {
+        let mut g = group(GroupStatus::Submitted);
+        g.fail(GroupStatus::Failed, "boom".into(), true);
+        assert_eq!((g.status.clone(), g.failures, g.rid.clone()), (GroupStatus::Pending, 1, None));
+        assert_eq!(g.error.as_deref(), Some("Try 1 of 3 failed: boom"));
+        g.status = GroupStatus::Submitted;
+        g.fail(GroupStatus::Expired, "gone".into(), true);
+        assert_eq!((g.status.clone(), g.failures), (GroupStatus::Pending, 2));
+        g.status = GroupStatus::Submitted;
+        g.fail(GroupStatus::Failed, "boom again".into(), true);
+        assert_eq!((g.status.clone(), g.failures, g.error.as_deref()), (GroupStatus::Failed, 3, Some("boom again")));
+    }
+
+    #[test]
+    fn a_failed_group_is_not_retried_when_the_app_does_not_send_searches() {
+        let mut g = group(GroupStatus::Submitted);
+        g.fail(GroupStatus::Failed, "boom".into(), false);
+        assert_eq!((g.status, g.failures, g.error.as_deref()), (GroupStatus::Failed, 1, Some("boom")));
     }
 
     #[test]
@@ -479,7 +521,7 @@ mod tests {
         let g: BlastGroup = serde_json::from_value(v).unwrap();
         assert_eq!(g.last_check, None);
         let s: BlastSettings = serde_json::from_str(r#"{"groupSize": 20}"#).unwrap();
-        assert_eq!(s.give_up_minutes, 120);
+        assert_eq!(s.give_up_minutes, 45);
     }
 
     #[test]

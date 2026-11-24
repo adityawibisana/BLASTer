@@ -392,6 +392,7 @@ pub fn import_into(h: &mut ProjectHandle, reports: Vec<Value>) -> Result<ImportS
             last_checked_at: None,
             last_check: None,
             source: GroupSource::File,
+            failures: 0,
         });
         targets.push(id);
     }
@@ -524,6 +525,7 @@ mod tests {
             last_checked_at: None,
             last_check: None,
             source: GroupSource::Ncbi,
+            failures: 0,
         };
         let groups = vec![g("g0002"), g("g0007")];
         assert_eq!(next_group_id(&groups), "g0008");
