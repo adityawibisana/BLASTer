@@ -71,6 +71,7 @@ pub fn run() {
             app::export_fasta,
             app::export_pdf,
             app::confirm_pair,
+            app::confirm_all_pairs,
             app::reject_pair,
             app::unpair,
             app::swap_pair,

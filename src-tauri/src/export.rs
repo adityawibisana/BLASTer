@@ -328,7 +328,7 @@ pub fn excel(h: &ProjectHandle, path: &Path) -> Result<()> {
             .collect();
         let rows: Vec<(String, String)> = vec![
             ("Project".into(), p.name.clone()),
-            ("Source zip".into(), p.source_zip.clone()),
+            ("Source".into(), p.source_zip.clone()),
             ("Exported".into(), chrono::Local::now().format("%Y-%m-%d %H:%M").to_string()),
             ("App version".into(), env!("CARGO_PKG_VERSION").into()),
             ("BLAST program".into(), format!("{}{}", used.program, if used.megablast { " (megablast)" } else { "" })),

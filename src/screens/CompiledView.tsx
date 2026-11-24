@@ -19,8 +19,8 @@ export default function CompiledView({ onCompile, onOpenSample }: { onCompile: (
 
   const columns: Column<CompiledRow>[] = useMemo(
     () => [
-      { key: "id", header: "Sample", width: 112, render: (r) => <span className="font-medium">{r.sampleId}</span>, sort: (r) => r.sampleId },
-      { key: "st", header: "Status", width: 150, render: (r) => <Flags flags={r.flags} /> },
+      { key: "id", header: "Sample", width: 170, render: (r) => <span className="font-medium">{r.sampleId}</span>, sort: (r) => r.sampleId },
+      { key: "st", header: "Status", width: 300, render: (r) => <Flags flags={r.flags} /> },
       {
         key: "sp",
         header: "Closest species",
@@ -32,7 +32,7 @@ export default function CompiledView({ onCompile, onOpenSample }: { onCompile: (
       { key: "cov", header: "Query Cover", width: 92, align: "right", render: (r) => cover(r.queryCover), sort: (r) => r.queryCover },
       { key: "acc", header: "Accession", width: 104, render: (r) => r.accession ?? "" },
       { key: "ru", header: "Runner-up species", width: 200, render: (r) => <i className="text-muted">{r.runnerUp ?? ""}</i>, sort: (r) => r.runnerUp },
-      { key: "ru%", header: "Runner-up %", width: 92, align: "right", render: (r) => pct(r.runnerUpIdentity), sort: (r) => r.runnerUpIdentity },
+      { key: "ru%", header: "Runner-up %", width: 110, align: "right", render: (r) => pct(r.runnerUpIdentity), sort: (r) => r.runnerUpIdentity },
       { key: "n", header: "Hits counted", width: 92, align: "right", render: (r) => r.hitsCounted, sort: (r) => r.hitsCounted },
     ],
     [],

@@ -261,6 +261,16 @@ struct Candidate {
     score: (usize, usize, isize, usize),
 }
 
+/// Both candidates find the same sites in the same orientation, so they cut the read alike.
+fn same_sites(a: &Candidate, b: &Candidate) -> bool {
+    let at = |s: &Option<SiteHit>| s.as_ref().map(|h| (h.start, h.end));
+    a.score.0 == b.score.0
+        && a.scan.orientation == b.scan.orientation
+        && (a.scan.lo, a.scan.hi) == (b.scan.lo, b.scan.hi)
+        && at(&a.scan.start_site).is_some() == at(&b.scan.start_site).is_some()
+        && at(&a.scan.end_site).is_some() == at(&b.scan.end_site).is_some()
+}
+
 fn scan_orientation(read: &[u8], set: &PrimerSet, dir: Dir, p: MatchParams, set_rank: usize) -> Candidate {
     let (start_name, start_pat, end_name, end_pat) = match dir {
         Dir::F => (&set.forward_name, upper(&set.forward), &set.reverse_name, reverse_complement(&upper(&set.reverse))),
@@ -301,12 +311,21 @@ fn scan_orientation(read: &[u8], set: &PrimerSet, dir: Dir, p: MatchParams, set_
 /// Search a raw read for the sites of every given primer set in both orientations
 /// and return the best-supported result. With no sets (primer option "none"),
 /// the whole read is kept.
+///
+/// When a later set finds the same sites as an earlier one (degenerate versions of
+/// a primer share its 3' end, so they cut in the same place), the earlier set is
+/// reported even if the degenerate one matches with fewer mismatches.
 pub fn scan(read: &[u8], sets: &[PrimerSet], p: MatchParams) -> PrimerScan {
     let mut best: Option<Candidate> = None;
     for (rank, set) in sets.iter().enumerate() {
         for dir in [Dir::F, Dir::R] {
             let c = scan_orientation(read, set, dir, p, rank);
-            if c.score.0 > 0 && best.as_ref().is_none_or(|b| c.score > b.score) {
+            let better = match &best {
+                None => c.score.0 > 0,
+                Some(b) if same_sites(&c, b) => false,
+                Some(b) => c.score > b.score,
+            };
+            if better {
                 best = Some(c);
             }
         }
@@ -330,6 +349,21 @@ mod tests {
         let site = s.end_site.unwrap();
         assert!(site.partial);
         assert_eq!(s.hi, barcode.len());
+    }
+
+    #[test]
+    fn standard_set_reported_when_a_degenerate_one_cuts_alike() {
+        let lib = builtin_library();
+        let barcode = b"ACGTTGCAACGTAGCTAGCTAGGATCGATCGATTTACG".repeat(5);
+        // HCO2198 with A->C at a position HCO2198-JJ allows (V): Folmer has one
+        // mismatch, the degenerate primer none, and both end at the same base.
+        let mut hco = lib[0].reverse.as_bytes().to_vec();
+        hco[8] = b'C';
+        let read = [barcode.as_slice(), &reverse_complement(&hco), b"ACGTACGTAC"].concat();
+        let s = scan(&read, &lib, P);
+        assert_eq!(s.set_name.as_deref(), Some("Folmer et al. 1994"));
+        assert_eq!(s.hi, barcode.len());
+        assert_eq!(s.end_site.unwrap().mismatches, 1);
     }
 
     #[test]

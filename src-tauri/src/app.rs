@@ -184,10 +184,12 @@ fn has_unfinished(h: &ProjectHandle) -> bool {
     h.project.blast.groups.iter().any(|g| matches!(g.status, GroupStatus::Pending | GroupStatus::Submitted))
 }
 
+const SEARCH_RUNNING: &str = "a BLAST search is still running for the open project; cancel it first";
+
 fn install(app: &AppHandle, handle: ProjectHandle) -> CmdResult<Value> {
     let state = app.state::<AppState>();
     if state.running.load(Ordering::SeqCst) {
-        return Err("a BLAST search is still running for the open project; cancel it first".into());
+        return Err(SEARCH_RUNNING.into());
     }
     let _ = save_now(&state);
     remember(&state, &handle.path, &handle.project.name);
@@ -200,21 +202,25 @@ fn install(app: &AppHandle, handle: ProjectHandle) -> CmdResult<Value> {
 }
 
 #[tauri::command]
-pub async fn create_project(app: AppHandle, zip_path: String) -> CmdResult<Value> {
+pub async fn create_project(app: AppHandle, paths: Vec<String>) -> CmdResult<Value> {
     let state = app.state::<AppState>();
+    // Checked before anything is written, so a refused import leaves no project file.
+    if state.running.load(Ordering::SeqCst) {
+        return Err(SEARCH_RUNNING.into());
+    }
     let settings = load_defaults(&state);
     let docs = state.documents_dir.join("COI Barcode BLAST");
-    let zip = PathBuf::from(&zip_path);
+    let paths: Vec<PathBuf> = paths.into_iter().map(PathBuf::from).collect();
     let handle = tokio::task::spawn_blocking(move || -> anyhow::Result<ProjectHandle> {
-        let imported = crate::importer::import(&zip, &settings)?;
-        let name = zip.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "Batch".into());
+        let imported = crate::importer::import_paths(&paths, &settings)?;
+        let name = crate::importer::project_name(&paths);
         std::fs::create_dir_all(&docs)?;
         let path = store::unique_path(&docs, &name);
         let mut project = Project {
             format: PROJECT_FORMAT,
             name,
             created_at: chrono::Local::now().to_rfc3339(),
-            source_zip: zip.display().to_string(),
+            source_zip: crate::importer::describe(&paths),
             settings,
             reads: imported.reads,
             skipped: imported.skipped,
@@ -229,7 +235,11 @@ pub async fn create_project(app: AppHandle, zip_path: String) -> CmdResult<Value
     .await
     .map_err(err)?
     .map_err(err)?;
-    install(&app, handle)
+    let path = handle.path.clone();
+    install(&app, handle).inspect_err(|_| {
+        // Not opened (a search started meanwhile): do not leave the new file behind.
+        let _ = std::fs::remove_file(&path);
+    })
 }
 
 #[tauri::command]
@@ -409,6 +419,13 @@ pub fn confirm_pair(app: AppHandle, state: State<'_, AppState>, forward_id: Stri
     mutate(&state, |h| crate::pairs::confirm(&mut h.project, &forward_id, &reverse_id))?;
     changed(&app, "pairs");
     Ok(())
+}
+
+#[tauri::command]
+pub fn confirm_all_pairs(app: AppHandle, state: State<'_, AppState>) -> CmdResult<usize> {
+    let made = mutate(&state, |h| Ok(crate::pairs::confirm_all(&mut h.project)))?;
+    changed(&app, "pairs");
+    Ok(made)
 }
 
 #[tauri::command]
@@ -664,13 +681,21 @@ where
     let mut delay = Duration::from_secs(30);
     for attempt in 0..5 {
         match call().await {
-            Ok(v) => return Ok(Some(v)),
+            Ok(v) => {
+                if attempt > 0 {
+                    // The call worked again: drop the "retrying" message.
+                    update_group(app, group, |g| g.error = None);
+                }
+                return Ok(Some(v));
+            }
             Err(e) => {
                 let msg = e.to_string();
                 if msg == "RID_EXPIRED" || attempt == 4 {
-                    return Err(msg);
+                    return Err(format!("{e:#}"));
                 }
-                update_group(app, group, |g| g.error = Some(format!("{msg} (retrying in {} s)", delay.as_secs())));
+                // With the cause, e.g. "cannot reach NCBI: operation timed out".
+                let shown = format!("{e:#}");
+                update_group(app, group, |g| g.error = Some(format!("{shown} (retrying in {} s)", delay.as_secs())));
                 if !sleep_unless_cancelled(app, delay).await {
                     return Ok(None);
                 }

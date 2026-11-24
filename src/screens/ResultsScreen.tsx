@@ -37,8 +37,8 @@ export default function ResultsScreen() {
 
   const overviewColumns: Column<ReadView>[] = useMemo(
     () => [
-      { key: "id", header: "Sample", width: 112, render: (r) => <span className="font-medium">{r.id}</span>, sort: (r) => r.id },
-      { key: "status", header: "Status", width: 170, render: (r) => <Flags flags={r.flags} />, sort: (r) => r.flags.length },
+      { key: "id", header: "Sample", width: 170, render: (r) => <span className="font-medium">{r.id}</span>, sort: (r) => r.id },
+      { key: "status", header: "Status", width: 300, render: (r) => <Flags flags={r.flags} />, sort: (r) => r.flags.length },
       { key: "reads", header: "Reads", width: 92, render: (r) => readsLabel(r), sort: (r) => readsLabel(r) },
       {
         key: "primers",

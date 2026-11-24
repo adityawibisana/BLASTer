@@ -15,9 +15,9 @@ export default function ImportScreen() {
   const [confirmed, setConfirmed] = useState(false);
   const columns: Column<ReadView>[] = useMemo(
     () => [
-      { key: "id", header: "Sample", width: 120, render: (r) => <span className="font-medium">{r.id}</span>, sort: (r) => r.id },
-      { key: "flags", header: "QC status", width: 170, render: (r) => <Flags flags={r.derived.flags} /> },
-      { key: "file", header: "File", width: 120, render: (r) => <span className="text-muted">{r.fileName}</span> },
+      { key: "id", header: "Sample", width: 170, render: (r) => <span className="font-medium">{r.id}</span>, sort: (r) => r.id },
+      { key: "flags", header: "QC status", width: 310, render: (r) => <Flags flags={r.derived.flags} /> },
+      { key: "file", header: "File", width: 190, render: (r) => <span className="text-muted">{r.fileName}</span> },
       { key: "raw", header: "Raw length", width: 90, align: "right", render: (r) => r.rawLength, sort: (r) => r.rawLength },
       { key: "hq", header: "% HQ raw", width: 84, align: "right", render: (r) => (r.hasTrace ? r.rawHqPct.toFixed(1) : "—"), sort: (r) => (r.hasTrace ? r.rawHqPct : -1) },
       { key: "gc", header: "% GC", width: 64, align: "right", render: (r) => r.rawGcPct.toFixed(1), sort: (r) => r.rawGcPct },
@@ -68,9 +68,12 @@ export default function ImportScreen() {
   );
   if (!project) return null;
   const reads = project.reads;
-  const passed = reads.filter((r) => r.derived.eligible).length;
-  const failed = reads.filter((r) => r.derived.qcFailed).length;
-  const unknownDir = reads.filter((r) => r.derived.direction === null).length;
+  // A confirmed pair is one sample: its reverse read is not counted on its own.
+  const samples = reads.filter((r) => !r.pairedWith);
+  const pairCount = reads.length - samples.length;
+  const passed = samples.filter((r) => r.derived.eligible).length;
+  const failed = samples.filter((r) => r.derived.qcFailed).length;
+  const unknownDir = samples.filter((r) => r.derived.direction === null).length;
   const fromFasta = reads.filter((r) => !r.hasTrace).length;
 
   return (
@@ -79,7 +82,7 @@ export default function ImportScreen() {
         title="Import"
         subtitle={
           <>
-            {reads.length} samples from <span className="font-medium text-ink">{project.sourceZip.split(/[\\/]/).pop()}</span> · {passed}{" "}
+            {samples.length} samples{pairCount > 0 && ` (${reads.length} reads, ${pairCount} pairs)`} from <span className="font-medium text-ink">{project.sourceZip.split(/[\\/]/).pop()}</span> · {passed}{" "}
             pass QC · {failed} failed QC{unknownDir > 0 && ` · ${unknownDir} with unknown direction`}
           </>
         }
@@ -153,7 +156,7 @@ export default function ImportScreen() {
         </div>
         {project.skipped.length > 0 && (
           <div className="card mt-3 border-warn bg-warn-soft px-4 py-2.5">
-            <div className="font-semibold text-warn">{project.skipped.length} files skipped</div>
+            <div className="font-semibold text-warn">{project.skipped.length} file{project.skipped.length === 1 ? "" : "s"} skipped</div>
             {project.skipped.map((s) => (
               <div key={s.fileName} className="text-[12.5px]">
                 {s.fileName}: {s.reason}

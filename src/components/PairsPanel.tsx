@@ -34,7 +34,19 @@ export function PairsPanel() {
 
       {sugg.length > 0 && (
         <div className="mt-2 flex flex-col gap-1.5">
-          <div className="label">Suggested pairs: confirm or reject each one</div>
+          <div className="flex items-center gap-3">
+            <div className="label">
+              {sugg.length} suggested pair{sugg.length === 1 ? "" : "s"}: confirm or reject each one
+            </div>
+            {sugg.length > 1 && (
+              <button
+                className="btn btn-sm btn-primary ml-auto"
+                onClick={() => run(() => api.confirmAllPairs(), `${sugg.length} pairs confirmed`)}
+              >
+                <Link2 size={13} /> Pair all {sugg.length}
+              </button>
+            )}
+          </div>
           {sugg.map((s) => (
             <div key={`${s.forwardId}|${s.reverseId}`} className="flex items-center gap-3 rounded-md bg-info-soft px-3 py-1.5">
               <span className="font-medium">{s.forwardId}</span>
@@ -83,7 +95,7 @@ export function PairsPanel() {
                   </>
                 ) : (
                   <span className="text-muted">
-                    consensus {r.derived.finalLen} bp · overlap {p.overlap} bp · {p.identity.toFixed(1)}% identical · {p.disagreements} disagreements
+                    consensus {r.derived.finalLen} bp · overlap {p.overlap} bp · {p.identity.toFixed(1)}% identical · {p.disagreements} disagreement{p.disagreements === 1 ? "" : "s"}
                     {p.conflicts.length > 0 && <span className="text-warn"> · {p.conflicts.length} conflict{p.conflicts.length > 1 ? "s" : ""}</span>}
                   </span>
                 )}

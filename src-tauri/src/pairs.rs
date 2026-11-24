@@ -62,29 +62,64 @@ fn is_free(p: &Project, id: &str) -> bool {
     p.reads.iter().any(|r| r.id == id && r.pair.is_none() && r.paired_with.is_none())
 }
 
+/// The stem without a trailing read number, as in BOLD trace names: "ACHLO006-09_1"
+/// (from "ACHLO006-09_1_F") -> "ACHLO006-09". `None` when there is no read number.
+fn without_read_number(stem: &str) -> Option<&str> {
+    let cut = stem.rfind(['_', '-', '.', ' '])?;
+    let (base, n) = (&stem[..cut], &stem[cut + 1..]);
+    (!base.is_empty() && !n.is_empty() && n.len() <= 2 && n.bytes().all(|b| b.is_ascii_digit())).then_some(base)
+}
+
 /// Recompute the list of suggested pairs.
+///
+/// Reads pair when their names share a stem, e.g. `S01_F` / `S01_R`. A read left
+/// without a match is also tried without a read number before its marker
+/// (`X_1_F` / `X_2_R`, the BOLD naming), but only when that leaves exactly one
+/// forward and one reverse read with the shorter stem.
 pub fn suggest(p: &mut Project) {
     let s = p.settings.clone();
-    let mut out = Vec::new();
     let free: Vec<&Read> = p.reads.iter().filter(|r| r.pair.is_none() && r.paired_with.is_none()).collect();
-    for f in free.iter().filter(|r| r.derived.direction == Some(Dir::F)) {
-        let Some((stem_f, _)) = name_marker(&f.id, &s.fr_pattern) else { continue };
-        for r in free.iter().filter(|r| r.derived.direction == Some(Dir::R)) {
-            let Some((stem_r, _)) = name_marker(&r.id, &s.fr_pattern) else { continue };
-            if !stem_f.eq_ignore_ascii_case(&stem_r) {
-                continue;
+    let stemmed = |dir: Dir| -> Vec<(&Read, String)> {
+        free.iter()
+            .filter(|r| r.derived.direction == Some(dir))
+            .filter_map(|r| name_marker(&r.id, &s.fr_pattern).map(|(stem, _)| (*r, stem.to_ascii_lowercase())))
+            .collect()
+    };
+    let (fwd, rev) = (stemmed(Dir::F), stemmed(Dir::R));
+    let mut out = Vec::new();
+    let try_pair = |f: &Read, r: &Read, out: &mut Vec<PairSuggestion>| {
+        if p.rejected_pairs.iter().any(|(a, b)| *a == f.id && *b == r.id) {
+            return;
+        }
+        let c = try_assemble(f, r, &s);
+        if c.overlaps() {
+            out.push(PairSuggestion { forward_id: f.id.clone(), reverse_id: r.id.clone(), overlap: c.overlap, identity: c.identity });
+        }
+    };
+    let mut matched: Vec<&str> = Vec::new();
+    for (f, stem_f) in &fwd {
+        for (r, stem_r) in &rev {
+            if stem_f == stem_r {
+                matched.extend([f.id.as_str(), r.id.as_str()]);
+                try_pair(f, r, &mut out);
             }
-            if p.rejected_pairs.iter().any(|(a, b)| *a == f.id && *b == r.id) {
-                continue;
-            }
-            let c = try_assemble(f, r, &s);
-            if c.overlaps() {
-                out.push(PairSuggestion {
-                    forward_id: f.id.clone(),
-                    reverse_id: r.id.clone(),
-                    overlap: c.overlap,
-                    identity: c.identity,
-                });
+        }
+    }
+    let loose = |list: &[(&'_ Read, String)]| -> Vec<(String, String)> {
+        list.iter()
+            .filter(|(r, _)| !matched.contains(&r.id.as_str()))
+            .filter_map(|(r, stem)| without_read_number(stem).map(|b| (r.id.clone(), b.to_string())))
+            .collect()
+    };
+    let (loose_f, loose_r) = (loose(&fwd), loose(&rev));
+    for (f_id, base) in &loose_f {
+        let fs: Vec<_> = loose_f.iter().filter(|(_, b)| b == base).collect();
+        let rs: Vec<_> = loose_r.iter().filter(|(_, b)| b == base).collect();
+        if let ([_], [(r_id, _)]) = (fs.as_slice(), rs.as_slice()) {
+            let f = free.iter().find(|r| &r.id == f_id).copied();
+            let r = free.iter().find(|r| &r.id == r_id).copied();
+            if let (Some(f), Some(r)) = (f, r) {
+                try_pair(f, r, &mut out);
             }
         }
     }
@@ -117,6 +152,19 @@ pub fn confirm(p: &mut Project, forward_id: &str, reverse_id: &str) -> Result<()
     refresh_pair(p, forward_id);
     p.pair_suggestions.retain(|x| x.forward_id != forward_id && x.reverse_id != reverse_id);
     Ok(())
+}
+
+/// Confirm every current suggestion, in order. A suggestion whose reads were
+/// already paired by an earlier one is dropped. Returns the number of pairs made.
+pub fn confirm_all(p: &mut Project) -> usize {
+    let mut made = 0;
+    for s in p.pair_suggestions.clone() {
+        if is_free(p, &s.forward_id) && is_free(p, &s.reverse_id) && confirm(p, &s.forward_id, &s.reverse_id).is_ok() {
+            made += 1;
+        }
+    }
+    p.pair_suggestions.clear();
+    made
 }
 
 pub fn reject(p: &mut Project, forward_id: &str, reverse_id: &str) {
@@ -304,5 +352,15 @@ mod tests {
         // A custom pattern replaces the built-in markers.
         assert_eq!(name_marker("S7fw", "fw,rv"), Some(("S7".into(), Dir::F)));
         assert_eq!(name_marker("S7_F", "fw,rv"), None);
+    }
+
+    #[test]
+    fn strips_read_numbers() {
+        assert_eq!(without_read_number("achl_achlo006-09_1"), Some("achl_achlo006-09"));
+        assert_eq!(without_read_number("dmel_bbdcn941-10_2"), Some("dmel_bbdcn941-10"));
+        // Not a read number: too long, or nothing before it.
+        assert_eq!(without_read_number("vn220"), None);
+        assert_eq!(without_read_number("s_2022"), None);
+        assert_eq!(without_read_number("_1"), None);
     }
 }

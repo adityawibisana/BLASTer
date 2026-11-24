@@ -13,9 +13,27 @@ pub fn species_of(hit: &HitRow) -> String {
     hit.title.split_whitespace().take(2).collect::<Vec<_>>().join(" ")
 }
 
-fn rank_key(h: &HitRow) -> (i64, i64, i64) {
-    // Rounded as NCBI displays them, so equal-looking values tie.
-    ((h.per_ident * 100.0).round() as i64, (h.query_cover * 100.0).round() as i64, (h.max_score * 10.0).round() as i64)
+/// A name that does not identify a species: "Culex sp. RP-2019-12", "Culicidae sp.",
+/// "Diptera sp. BOLD:AAA4210", "Aedes cf. albopictus", "uncultured Culex", ...
+pub fn is_placeholder(species: &str) -> bool {
+    let words: Vec<&str> = species.split_whitespace().collect();
+    const OPEN: &[&str] = &["sp.", "sp", "spp.", "spp", "cf.", "cf", "aff.", "aff", "nr.", "nr", "gen."];
+    words.len() < 2
+        || words.iter().any(|w| OPEN.contains(&w.to_ascii_lowercase().as_str()))
+        || matches!(words[0].to_ascii_lowercase().as_str(), "uncultured" | "unidentified" | "unclassified")
+        || species.contains("BOLD:")
+        || species.to_ascii_lowercase().contains("environmental sample")
+}
+
+fn rank_key(h: &HitRow) -> (i64, i64, bool, i64) {
+    // Rounded as NCBI displays them, so equal-looking values tie. At equal identity
+    // and cover, a named species comes before a placeholder name.
+    (
+        (h.per_ident * 100.0).round() as i64,
+        (h.query_cover * 100.0).round() as i64,
+        !is_placeholder(&species_of(h)),
+        (h.max_score * 10.0).round() as i64,
+    )
 }
 
 pub struct Closest<'a> {
@@ -25,8 +43,10 @@ pub struct Closest<'a> {
 }
 
 /// Highest % identity among hits covering at least `min_cover` % of the query.
-/// Exact ties: higher query cover, then higher Max Score, then the species backed
-/// by more hit records, then NCBI's order. Always a single answer.
+/// Exact ties: higher query cover, then a named species over a placeholder name,
+/// then higher Max Score, then the species backed by more hit records, then NCBI's
+/// order. Always a single answer. The runner-up is the closest other named species
+/// (any other species when there is none).
 pub fn closest(hits: &[HitRow], min_cover: f64) -> Option<Closest<'_>> {
     let mut counted: Vec<&HitRow> = hits.iter().filter(|h| h.query_cover + 1e-9 >= min_cover).collect();
     if counted.is_empty() {
@@ -44,17 +64,24 @@ pub fn closest(hits: &[HitRow], min_cover: f64) -> Option<Closest<'_>> {
     });
     let best = counted[0];
     let species = species_of(best);
-    let runner_up = counted.iter().copied().find(|h| species_of(h) != species);
+    let other = |h: &&HitRow| species_of(h) != species;
+    let runner_up = counted
+        .iter()
+        .copied()
+        .find(|h| other(h) && !is_placeholder(&species_of(h)))
+        .or_else(|| counted.iter().copied().find(other));
     Some(Closest { best, runner_up, counted: counted.len() })
 }
 
-/// More than one species among counted hits within 1% identity of the best one.
+/// Another named species among counted hits within 1% identity of the best one.
+/// Placeholder names ("Culicidae sp.", "Aedes sp.", BOLD BINs) do not count.
 pub fn mixed_species(hits: &[HitRow], min_cover: f64) -> bool {
     let Some(c) = closest(hits, min_cover) else { return false };
     let species = species_of(c.best);
-    hits.iter()
-        .filter(|h| h.query_cover + 1e-9 >= min_cover)
-        .any(|h| h.per_ident >= c.best.per_ident - 1.0 && species_of(h) != species)
+    hits.iter().filter(|h| h.query_cover + 1e-9 >= min_cover).any(|h| {
+        let s = species_of(h);
+        h.per_ident >= c.best.per_ident - 1.0 && s != species && !is_placeholder(&s)
+    })
 }
 
 pub fn compile<'q>(
@@ -172,6 +199,41 @@ mod tests {
             hit(3, "B two", 99.0, 100.0, 990.0),
         ];
         assert_eq!(closest(&hits, 80.0).unwrap().best.sciname, "B two");
+    }
+
+    #[test]
+    fn named_species_beats_placeholder_at_equal_identity() {
+        // VN236-1: one "Culex sp. RP-2019-12" record with a slightly higher score
+        // against 68 Culex quinquefasciatus records, all at 100%.
+        let hits = vec![
+            hit(1, "Culex sp. RP-2019-12", 100.0, 100.0, 1150.0),
+            hit(2, "Culex quinquefasciatus", 100.0, 100.0, 1140.0),
+            hit(3, "Culex quinquefasciatus", 100.0, 100.0, 1140.0),
+            hit(4, "Culicidae sp.", 100.0, 100.0, 1150.0),
+            hit(5, "Culex pipiens", 100.0, 100.0, 1140.0),
+        ];
+        let c = closest(&hits, 80.0).unwrap();
+        assert_eq!(c.best.sciname, "Culex quinquefasciatus");
+        assert_eq!(c.runner_up.unwrap().sciname, "Culex pipiens");
+        assert!(mixed_species(&hits, 80.0));
+        // A placeholder that is strictly closer still wins: it may be an undescribed species.
+        let hits = vec![hit(1, "Culex sp. RP-2019-12", 100.0, 100.0, 1150.0), hit(2, "Culex pipiens", 98.0, 100.0, 1100.0)];
+        assert_eq!(closest(&hits, 80.0).unwrap().best.sciname, "Culex sp. RP-2019-12");
+    }
+
+    #[test]
+    fn placeholders_do_not_make_mixed_species() {
+        let hits = vec![
+            hit(1, "Armigeres subalbatus", 100.0, 100.0, 1100.0),
+            hit(2, "Culicidae sp.", 100.0, 100.0, 1100.0),
+            hit(3, "Diptera sp. BOLD:AAA4210", 99.8, 100.0, 1090.0),
+        ];
+        assert!(!mixed_species(&hits, 80.0));
+        assert!(is_placeholder("Culex pipiens complex sp. CROBB649"));
+        assert!(is_placeholder("uncultured Culex"));
+        assert!(is_placeholder("Aedes cf. albopictus"));
+        assert!(!is_placeholder("Culex pipiens molestus"));
+        assert!(!is_placeholder("Aedes albopictus"));
     }
 
     #[test]

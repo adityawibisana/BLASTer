@@ -19,7 +19,7 @@ export const api = {
   primerLibrary: () => invoke<PrimerSet[]>("primer_library"),
 
   getProject: () => invoke<ProjectView | null>("get_project"),
-  createProject: (zipPath: string) => invoke<ProjectView>("create_project", { zipPath }),
+  createProject: (paths: string[]) => invoke<ProjectView>("create_project", { paths }),
   openProject: (path: string) => invoke<ProjectView>("open_project", { path }),
   closeProject: () => invoke<void>("close_project"),
   saveProjectAs: (path: string) => invoke<ProjectView>("save_project_as", { path }),
@@ -38,6 +38,7 @@ export const api = {
   compileResults: () => invoke<ProjectView>("compile_results"),
 
   confirmPair: (forwardId: string, reverseId: string) => invoke<void>("confirm_pair", { forwardId, reverseId }),
+  confirmAllPairs: () => invoke<number>("confirm_all_pairs"),
   rejectPair: (forwardId: string, reverseId: string) => invoke<void>("reject_pair", { forwardId, reverseId }),
   unpair: (forwardId: string) => invoke<void>("unpair", { forwardId }),
   swapPair: (forwardId: string) => invoke<void>("swap_pair", { forwardId }),

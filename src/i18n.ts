@@ -22,7 +22,8 @@ const en = {
   start: {
     title: "COI Barcode BLAST",
     subtitle: "Sanger traces to species: trim, BLAST, compile.",
-    newProject: "New project from .zip or .fasta",
+    newProject: "New project from files…",
+    folder: "Choose a folder…",
     open: "Open project…",
     recent: "Recent projects",
     none: "No recent projects yet.",
@@ -61,7 +62,8 @@ const id: typeof en = {
   start: {
     title: "COI Barcode BLAST",
     subtitle: "Dari kromatogram Sanger ke spesies: trim, BLAST, kompilasi.",
-    newProject: "Proyek baru dari .zip atau .fasta",
+    newProject: "Proyek baru dari berkas…",
+    folder: "Pilih folder…",
     open: "Buka proyek…",
     recent: "Proyek terakhir",
     none: "Belum ada proyek.",

@@ -106,7 +106,7 @@ function Shell() {
                   {project.name}
                 </div>
                 <div className="label truncate" title={project.path}>
-                  {project.reads.length} {t("common.samples")} · {project.path}
+                  {project.reads.filter((r) => !r.pairedWith).length} {t("common.samples")} · {project.path}
                 </div>
               </div>
               <div className="flex gap-1.5">

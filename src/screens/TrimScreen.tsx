@@ -166,7 +166,7 @@ export default function TrimScreen() {
             ) : (
               <span className="text-muted">
                 Consensus {sample.derived.finalLen} bp, {sample.derived.hqPct.toFixed(1)}% HQ · overlap {sample.pair.overlap} bp ·{" "}
-                {sample.pair.disagreements} disagreements
+                {sample.pair.disagreements} disagreement{sample.pair.disagreements === 1 ? "" : "s"}
                 {sample.pair.conflicts.length > 0 && (
                   <span className="text-warn">
                     {" "}
