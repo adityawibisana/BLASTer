@@ -5,7 +5,7 @@ import { api, errorText } from "./api";
 import i18n from "./i18n";
 import type { ProjectView } from "./types";
 
-export type Screen = "start" | "import" | "trim" | "blast" | "results" | "export" | "settings";
+export type Screen = "start" | "import" | "trim" | "blast" | "results" | "export" | "settings" | "help";
 
 interface AppContextValue {
   project: ProjectView | null;

@@ -540,6 +540,7 @@ Saving is automatic after every change. *File → Open* and a **recent projects*
    - optional F/R filename pattern
    - BLAST queries per submission (default 20)
    - Compile: minimum query cover for a hit to count (default 80%)
+7. **Help Us:** the open questions for the lab (which primers were used, and the Geneious reference data). Each has an **Answer** button that opens its GitHub issue ([#7](https://github.com/adityawibisana/BLASTer/issues/7), [#8](https://github.com/adityawibisana/BLASTer/issues/8)) in the browser.
 
 ## Error handling
 
@@ -615,11 +616,11 @@ These are assumptions written into this document that must be checked before or 
 | 3 | The four built-in primer sequences are correct | **Verified.** All eight sequences match: LCO1490/HCO2198 against [Folmer et al. 1994](https://www.mbari.org/wp-content/uploads/2016/01/Folmer_94MMBB.pdf); dgLCO1490/dgHCO2198 (Meyer 2003) against [Geller et al. 2013](https://research.nhm.org/disco/arip2017/Day03/geller2013.pdf); LCO1490-JJ/HCO2198-JJ (Astrin & Stüben 2008) against the [ZFMK protocol](https://www.protocols.io/view/supplemental-lab-protocol-for-barcoding-primers-de-dsqn6dve.pdf); LepF1/LepR1 (Hebert et al. 2004) against [this primer list](https://cosmelab.github.io/entm201l-fall2025/modules/07-pcr-barcoding/references.html). Only Folmer was checked in the original paper; the others against tables that cite them |
 | 4 | NCBI RIDs expire after 24 hours | **Checked: 24–36 hours.** The results page showed 24 hours; [NCBI support](https://support.nlm.nih.gov/knowledgebase/article/KA-05438/en-us) says 36 hours (the URL API documentation gives no time). The app uses no fixed limit: it treats a RID as expired when NCBI no longer knows it and offers to resubmit, so no change was needed |
 | 5 | A public BOLD v5 identification API exists and allows this use | **Checked: no.** The v4 engine is retired and the v5 APIs have no sequence search, so the BOLD option was dropped (step 8) |
-| 6 | Which primers the lab actually used | Ask the lab. Until then, auto-detect decides |
+| 6 | Which primers the lab actually used | Ask the lab: asked in the app's **Help Us** tab ([#7](https://github.com/adityawibisana/BLASTer/issues/7)). Until then, auto-detect decides |
 
 **Found from the data:** the 638 bp screenshot query is **VN248-2 bases 43–680** (the Geneious trim). Submitted to NCBI on 2026-11-06, it gave PX112589.1 as hit #1 with 100.00% identity, 100% query cover, E value 0.0 and accession length 638. The bit score was 1176.0 as computed; NCBI's page showed 1175. The app shows bit scores rounded down, as NCBI's pages appear to do, so small differences like this are expected.
 
-**Reference data needed from the Geneious workflow** (for the definition of done):
+**Reference data needed from the Geneious workflow** (for the definition of done; asked in the app's **Help Us** tab, [#8](https://github.com/adityawibisana/BLASTer/issues/8)):
 - a Geneious export of the 20 files' statistics (raw length, % HQ, % GC, trim ranges)
 - the trimmed sequences
 - the species identified for each sample

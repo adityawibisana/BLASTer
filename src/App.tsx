@@ -6,6 +6,7 @@ import {
   Dna,
   FileDown,
   FolderOpen,
+  HelpCircle,
   Home,
   ListChecks,
   Loader2,
@@ -23,6 +24,7 @@ import BlastScreen from "./screens/BlastScreen";
 import ResultsScreen from "./screens/ResultsScreen";
 import ExportScreen from "./screens/ExportScreen";
 import SettingsScreen from "./screens/SettingsScreen";
+import HelpScreen from "./screens/HelpScreen";
 
 const NAV: { id: Screen; icon: typeof Home; needsProject: boolean }[] = [
   { id: "start", icon: Home, needsProject: false },
@@ -32,6 +34,7 @@ const NAV: { id: Screen; icon: typeof Home; needsProject: boolean }[] = [
   { id: "results", icon: ListChecks, needsProject: true },
   { id: "export", icon: FileDown, needsProject: true },
   { id: "settings", icon: SettingsIcon, needsProject: false },
+  { id: "help", icon: HelpCircle, needsProject: false },
 ];
 
 function Shell() {
@@ -63,6 +66,7 @@ function Shell() {
     results: ResultsScreen,
     export: ExportScreen,
     settings: SettingsScreen,
+    help: HelpScreen,
   }[screen];
 
   return (

@@ -10,6 +10,7 @@ const en = {
     results: "Results",
     export: "Export",
     settings: "Settings",
+    help: "Help Us",
   },
   common: {
     noProject: "No project open",
@@ -50,6 +51,7 @@ const id: typeof en = {
     results: "Hasil",
     export: "Ekspor",
     settings: "Pengaturan",
+    help: "Bantu Kami",
   },
   common: {
     noProject: "Belum ada proyek",
