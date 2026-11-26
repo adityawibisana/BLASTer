@@ -56,6 +56,7 @@ fn add_fixture_group(h: &mut store::ProjectHandle) {
         last_checked_at: None,
         last_check: None,
         source: Default::default(),
+        failures: 0,
     });
     let json = std::fs::read_to_string(root().join("tests/fixtures/ncbi_18_samples.json")).unwrap();
     let parsed = blast::parse_results(&json).unwrap();

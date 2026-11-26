@@ -83,6 +83,7 @@ fn group(h: &store::ProjectHandle, id: &str, ids: &[&str], status: GroupStatus) 
         last_checked_at: None,
         last_check: None,
         source: GroupSource::Ncbi,
+        failures: 0,
     }
 }
 

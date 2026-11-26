@@ -92,6 +92,7 @@ fn searches_a_local_database() {
         last_checked_at: None,
         last_check: None,
         source: GroupSource::Local,
+        failures: 0,
     });
     store::attach_results(&mut h, "g0001", parsed, json.clone());
     for r in h.project.reads.iter().filter(|r| r.derived.eligible) {
