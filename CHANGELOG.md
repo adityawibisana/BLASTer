@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.0 - 2026-11-26
+
+- Optional Telegram notifications for searches (459bb2b)
+
 ## v0.2.0 - 2026-11-26
 
 - Match the Tauri Rust crates to the npm packages (2.12, dialog 2.8, opener 2.7) so tauri build passes (bb48631)

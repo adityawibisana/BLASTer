@@ -673,7 +673,7 @@ checksum = "9589e1effc5cacbea347899645c654158b03b2053d24bb426fd3128ced6e423c"
 
 [[package]]
 name = "coi-barcode-blast"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "chrono",
