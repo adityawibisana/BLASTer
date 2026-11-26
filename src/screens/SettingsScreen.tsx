@@ -6,6 +6,7 @@ import { api, errorText } from "../api";
 import i18n from "../i18n";
 import { useApp } from "../state";
 import { Field, PageHeader } from "../components/ui";
+import TelegramSettings from "../components/TelegramSettings";
 import type { BlastLocation, PrimerMode, PrimerSet, Settings } from "../types";
 
 function Num({ value, onChange, step = 1, min, max }: { value: number; onChange: (v: number) => void; step?: number; min?: number; max?: number }) {
@@ -318,6 +319,8 @@ export default function SettingsScreen() {
             <Num value={draft.compileMinCover} onChange={(v) => set("compileMinCover", v)} min={0} max={100} />
           </Field>
         </section>
+
+        <TelegramSettings />
       </div>
     </div>
   );

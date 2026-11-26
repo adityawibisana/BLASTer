@@ -304,3 +304,10 @@ export interface HitDetail {
   length: number;
   hsps: Hsp[];
 }
+
+/** App-wide Telegram notifications (kept on this computer, not in projects). */
+export interface NotifySettings {
+  enabled: boolean;
+  botToken: string;
+  chatId: string;
+}

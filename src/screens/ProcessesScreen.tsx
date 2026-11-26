@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
 import clsx from "clsx";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { AlertTriangle, Check, ChevronDown, ChevronRight, Cpu, ExternalLink, FileUp, Globe, Loader2, RotateCcw, X } from "lucide-react";
+import { AlertTriangle, Bell, BellOff, Check, ChevronDown, ChevronRight, Cpu, ExternalLink, FileUp, Globe, Loader2, RotateCcw, X } from "lucide-react";
 import { api } from "../api";
 import { useApp } from "../state";
 import { Empty, Modal, PageHeader } from "../components/ui";
@@ -161,6 +161,10 @@ export default function ProcessesScreen() {
   const now = useNow();
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [resend, setResend] = useState<GroupView | null>(null);
+  const [telegram, setTelegram] = useState<boolean | null>(null);
+  useEffect(() => {
+    api.getNotifySettings().then((n) => setTelegram(n.enabled && !!n.botToken && !!n.chatId), () => setTelegram(null));
+  }, []);
   if (!project) return <Empty>No project open. Processes are the BLAST searches of the open project.</Empty>;
 
   const groups = project.groups;
@@ -229,6 +233,22 @@ export default function ProcessesScreen() {
                 Groups done {s.done} / {s.total} · {s.samplesDone} of {s.samplesTotal} samples have results
               </div>
             </div>
+            {telegram != null && (
+              <div className="flex items-center gap-1.5 text-[12px] text-muted">
+                {telegram ? (
+                  <>
+                    <Bell size={12} className="text-accent" /> Telegram on: you get a message when all searches finish, a search times out or a group fails.
+                  </>
+                ) : (
+                  <>
+                    <BellOff size={12} /> Get a Telegram message when the searches finish or fail.
+                    <button className="link text-accent underline" onClick={() => go("settings")}>
+                      Set up Telegram
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
             <div className="h-2 overflow-hidden rounded-full bg-panel-2">
               <div
                 className={clsx("h-full rounded-full transition-all", s.slow ? "bg-warn" : "bg-accent")}

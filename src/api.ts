@@ -5,6 +5,7 @@ import type {
   BlastSettings,
   HitDetail,
   ImportSummary,
+  NotifySettings,
   PrimerSet,
   ProjectView,
   RecentProject,
@@ -58,6 +59,11 @@ export const api = {
   importBlastResults: (path: string) => invoke<ImportSummary>("import_blast_results", { path }),
   openOnWebsite: (id: string) => invoke<void>("open_on_website", { id }),
   checkLocalBlast: (settings: BlastSettings) => invoke<string>("check_local_blast", { settings }),
+
+  getNotifySettings: () => invoke<NotifySettings>("get_notify_settings"),
+  saveNotifySettings: (settings: NotifySettings) => invoke<void>("save_notify_settings", { settings }),
+  telegramFindChat: (token: string) => invoke<{ id: string; name: string }>("telegram_find_chat", { token }),
+  telegramTest: (token: string, chatId: string) => invoke<void>("telegram_test", { token, chatId }),
   quitApp: () => invoke<void>("quit_app"),
 };
 

@@ -9,6 +9,7 @@ pub mod fasta;
 pub mod importer;
 pub mod local_blast;
 pub mod model;
+pub mod notify;
 pub mod pairs;
 pub mod pdf;
 pub mod primers;
@@ -93,6 +94,10 @@ pub fn run() {
             app::import_blast_results,
             app::open_on_website,
             app::check_local_blast,
+            app::get_notify_settings,
+            app::save_notify_settings,
+            app::telegram_find_chat,
+            app::telegram_test,
             app::quit_app,
         ])
         .run(tauri::generate_context!())

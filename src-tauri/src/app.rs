@@ -13,6 +13,7 @@ use tokio::sync::Notify;
 use crate::analysis;
 use crate::blast::{self, Client, SearchStatus};
 use crate::model::*;
+use crate::notify::{self, NotifySettings, Stop};
 use crate::primers::{self, Dir};
 use crate::store::{self, ProjectHandle};
 use crate::views;
@@ -773,8 +774,14 @@ pub fn spawn_runner(app: AppHandle) {
     }
     state.cancel.store(false, Ordering::SeqCst);
     tauri::async_runtime::spawn(async move {
-        run_queue(&app).await;
+        let worked = run_queue(&app).await;
         let state = app.state::<AppState>();
+        if worked && !state.cancel.load(Ordering::SeqCst) {
+            let text = state.lock().as_ref().and_then(|h| notify::finished_message(&h.project.name, &h.project.blast.groups));
+            if let Some(text) = text {
+                notify::send_in_background(&state.config_dir, text);
+            }
+        }
         state.running.store(false, Ordering::SeqCst);
         state.save_signal.notify_one();
         changed(&app, "blast");
@@ -840,16 +847,18 @@ where
     unreachable!()
 }
 
-async fn run_queue(app: &AppHandle) {
+/// Run the queued searches until none is left. Returns whether any group was worked on.
+async fn run_queue(app: &AppHandle) -> bool {
     let state = app.state::<AppState>();
     let client = match Client::new() {
         Ok(c) => c,
         Err(e) => {
             let _ = app.emit("save-error", e.to_string());
-            return;
+            return false;
         }
     };
     let mut last_submit: Option<Instant> = None;
+    let mut worked = false;
     loop {
         if state.cancel.load(Ordering::SeqCst) {
             let mut guard = state.lock();
@@ -886,6 +895,7 @@ async fn run_queue(app: &AppHandle) {
             })
         };
         let Some((group, blast_settings, email, max_wait)) = next else { break };
+        worked = true;
         let gid = group.id.clone();
 
         // BLAST+ on this computer (a group left running when the app closed starts over).
@@ -968,26 +978,26 @@ async fn run_queue(app: &AppHandle) {
                 Ok(Some(SearchStatus::Waiting)) => {
                     if blast::waited_too_long(submitted_at.as_deref(), chrono::Local::now().fixed_offset(), max_wait) {
                         let limit = blast::wait_text(max_wait);
-                        break Some(Err((GroupStatus::Failed, format!("NCBI did not finish this search within {limit}; send it again"))));
+                        break Some(Err((GroupStatus::Failed, format!("NCBI did not finish this search within {limit}; send it again"), Stop::TimedOut)));
                     }
                     if !sleep_while_current(app, blast::POLL_INTERVAL, &gid, &rid).await {
                         break None;
                     }
                 }
                 Ok(Some(SearchStatus::Ready { .. })) => break Some(Ok(())),
-                Ok(Some(SearchStatus::Failed(msg))) => break Some(Err((GroupStatus::Failed, msg))),
+                Ok(Some(SearchStatus::Failed(msg))) => break Some(Err((GroupStatus::Failed, msg, Stop::Error))),
                 Ok(Some(SearchStatus::Unknown)) => {
-                    break Some(Err((GroupStatus::Expired, "NCBI no longer has this search (expired)".into())));
+                    break Some(Err((GroupStatus::Expired, "NCBI no longer has this search (expired)".into(), Stop::Error)));
                 }
                 Ok(None) => break None,
-                Err(msg) => break Some(Err((GroupStatus::Failed, msg))),
+                Err(msg) => break Some(Err((GroupStatus::Failed, msg, Stop::Error))),
             }
         };
         match outcome {
             None => continue, // cancelled; the group stays Submitted and can resume later
-            Some(Err((status, msg))) => {
+            Some(Err((status, msg, why))) => {
                 if still_current(app, &gid, &rid) {
-                    fail_group(app, &gid, status, msg);
+                    stop_group(app, &gid, status, msg, why);
                 }
                 continue;
             }
@@ -1012,15 +1022,61 @@ async fn run_queue(app: &AppHandle) {
             }
         }
     }
+    worked
 }
 
 /// Mark a group's search as failed. It goes back in the queue to be tried again
 /// until it has failed `MAX_TRIES` times, unless searches are sent from the NCBI
 /// website (the app does not send those itself).
 fn fail_group(app: &AppHandle, id: &str, status: GroupStatus, msg: String) {
+    stop_group(app, id, status, msg, Stop::Error);
+}
+
+/// [`fail_group`], saying why the search stopped. Once the group has no try left, a
+/// Telegram message is sent (when set up).
+fn stop_group(app: &AppHandle, id: &str, status: GroupStatus, msg: String, why: Stop) {
     let state = app.state::<AppState>();
     let can_retry = state.lock().as_ref().is_some_and(|h| h.project.settings.blast.location != BlastLocation::Website);
+    let mut text = None;
     update_group(app, id, |g| g.fail(status, msg, can_retry));
+    if let Some(h) = state.lock().as_ref() {
+        if let Some(g) = h.project.blast.groups.iter().find(|g| g.id == id) {
+            text = notify::group_message(&h.project.name, g, why);
+        }
+    }
+    if let Some(text) = text {
+        notify::send_in_background(&state.config_dir, text);
+    }
+}
+
+// ---------- Telegram notifications ----------
+
+#[tauri::command]
+pub fn get_notify_settings(state: State<'_, AppState>) -> NotifySettings {
+    notify::load(&state.config_dir)
+}
+
+#[tauri::command]
+pub fn save_notify_settings(state: State<'_, AppState>, settings: NotifySettings) -> CmdResult<()> {
+    notify::save(&state.config_dir, &settings).map_err(err)
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TelegramChat {
+    pub id: String,
+    pub name: String,
+}
+
+#[tauri::command]
+pub async fn telegram_find_chat(token: String) -> CmdResult<TelegramChat> {
+    let (id, name) = notify::find_chat(&token).await.map_err(|e| format!("{e:#}"))?;
+    Ok(TelegramChat { id, name })
+}
+
+#[tauri::command]
+pub async fn telegram_test(token: String, chat_id: String) -> CmdResult<()> {
+    notify::send(&token, &chat_id, "🔔 Test from COI Barcode BLAST: notifications work.").await.map_err(|e| format!("{e:#}"))
 }
 
 /// Whether the group still waits to be sent (its results were not imported meanwhile).

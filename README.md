@@ -45,6 +45,10 @@ Screenshots use the example data in `samples/`: `COI_20_sequences.zip` (20 mosqu
 
 ![BLAST screen: search groups, progress and search settings](screenshots/blast.png)
 
+**Telegram notifications (optional).** Add a bot token (`TELEGRAM_BOT_TOKEN`) in Settings to get a Telegram message when all searches have finished, when a search times out, or when a group fails after all 3 tries. Messages hold only the project name and counts.
+
+![Settings: Telegram notifications with bot token, chat ID and test message](screenshots/telegram.png)
+
 **Batch overview.** Every sample with its top BLAST hit, % identity, query cover and accession on one page.
 
 ![Results batch overview: top hit species for every sample](screenshots/batch-overview.png)
@@ -350,6 +354,7 @@ Results expire on NCBI about **24–36 hours** after submission. The results pag
 - **Running in the background:** results appear group by group as they arrive, and the user can keep reviewing finished samples.
 - **Resuming:** every RID and every finished group is saved in the project straight away. If the app or PC is closed, the next start resumes from the first unfinished group. Finished groups are never resent.
 - **When a group fails:** only that group is retried. The rest of the batch continues.
+- **Telegram notifications (optional):** with a bot token and chat ID set in Settings, the app sends a Telegram message when a group fails or times out after its last try (none for a try it will retry), and when the batch is finished (groups done, groups that did not finish, samples with results). A cancelled batch sends none. Messages hold the project name and counts only, never sample names or sequences. The token is saved in the app's config folder (`notify.json`), not in the project, so a shared project file does not carry it. A message that cannot be sent never stops a search.
 - **Off-peak runs:** for batches above 100 samples, the app suggests NCBI's off-peak hours (weekends, or 9 pm–5 am US Eastern time, which is 9 am–5 pm in Indonesia, WIB).
 
 **When NCBI is slow.** NCBI limits how much BLAST compute one IP address can use, so searches slow down for large batches, and on a shared network (a lab or campus), where everyone's searches count against the same limit ([Geneious: Slow NCBI BLAST searches](https://help.geneious.com/hc/en-us/articles/26244155736852-Slow-NCBI-BLAST-searches)). The app follows that guide:
@@ -553,6 +558,7 @@ Saving is automatic after every change. *File → Open* and a **recent projects*
    - **NCBI website** opens the NCBI BLAST website with the group's sequences and settings filled in; **Import results file** brings the downloaded results back. With *NCBI website* as the place to search, a box lists the three steps
    - the slow warning also explains NCBI's per-IP limit and offers the website or this computer
    - a group searched on this computer shows *Queued → Searching on this computer → Done*; an imported one says so
+   - whether Telegram notifications are on, with a link to set them up
 5. **Results:**
    - the batch overview
    - for each sample: the summary, hit list, and alignment detail
@@ -569,6 +575,7 @@ Saving is automatic after every change. *File → Open* and a **recent projects*
    - max hits per sample (default 10)
    - give up on a search NCBI still reports as waiting after (minutes; default 45, 10–1440)
    - Compile: minimum query cover for a hit to count (default 80%)
+   - Telegram notifications (optional, for this computer, not per project): bot token, chat ID (**Find chat** reads it after you send `/start` to the bot), **Send test message**
 8. **Help Us:** the open questions for the lab (which primers were used, and the Geneious reference data). Each has an **Answer** button that opens its GitHub issue ([#7](https://github.com/adityawibisana/BLASTer/issues/7), [#8](https://github.com/adityawibisana/BLASTer/issues/8)) in the browser.
 
 ## Error handling
